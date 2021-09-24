@@ -1,0 +1,5 @@
+*~
+log
+Gemfile.lock
+coverage
+spec/coverage

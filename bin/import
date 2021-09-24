@@ -1,0 +1,62 @@
+#!/usr/bin/env ruby
+
+require "optimist"
+$:.push(File.join(File.expand_path("..", File.dirname(__FILE__)),"lib"))
+
+$imported_count = 0
+
+def import_single val
+#  STDERR.puts "single #{val.inspect}"
+  file = Ordnung::File.create?(val)
+end
+
+def import_recursive val
+#  STDERR.puts "recursive #{val.inspect}"
+  Dir.open(val).each do |entry|
+#    STDERR.puts "#{entry.inspect} #{entry[0,1].inspect}"
+    next if entry[0,1] == '.'
+    next if entry[-1,1] == '~'
+    import File.join(val, entry)
+  end
+end
+
+def import val
+  $imported_count += 1
+  print "." if $imported_count % 100 == 0
+  if File.directory?(val)
+    import_recursive(val)
+  else
+    import_single(val)
+  end
+end
+
+opts = Optimist::options do
+  # keep 'short' options in sorted order
+  opt :debug,  "Debug",                        :short => 'd'
+end
+
+if opts[:debug_given]
+  Logger.level = Logger::DEBUG
+end
+
+require 'arango-driver'
+server = Arango.connect_to_server username: "root", password: "", host: "localhost", port: "8529"
+
+require 'ordnung'
+database = if server.database_exists?(name: "Ordnung")
+             server.get_database(name: "Ordnung")
+           else
+             server.create_database(name: "Ordnung")
+           end
+Ordnung.database = database
+Ordnung.setup
+
+file_count_before = Ordnung::File.count
+
+val = ARGV.shift
+import val
+
+file_count_after = Ordnung::File.count
+
+puts "#{file_count_after-file_count_before} new of #{$imported_count} total entries"
+puts "#{Ordnung::File.count} files in collection"
