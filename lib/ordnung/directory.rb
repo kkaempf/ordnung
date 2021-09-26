@@ -15,17 +15,18 @@ module Ordnung
     class StrippedPath < String
       @@strip = ""
       def self.strip= pathname
-        @@strip = pathname
+        @@strip = self.clean(pathname)
         # attach a trailing slash if not present
         unless @@strip[-1,1] == ::File::SEPARATOR
           @@strip << ::File::SEPARATOR
         end
+#        Logger.info "strip= #{pathname.inspect}, @@strip #{@@strip.inspect}"
       end
       def self.strip
         @@strip
       end
       # clean from leading dots or slashes
-      def clean pathname
+      def self.clean pathname
         loop do
 #          Logger.info "clean #{pathname.inspect}"
           case pathname[0,1]
@@ -42,8 +43,8 @@ module Ordnung
         if pathname.is_a? StrippedPath
           super pathname
         else         
-          pathname = clean(pathname).delete_prefix(@@strip)
-          super clean(pathname)
+          pathname = StrippedPath.clean(pathname).delete_prefix(@@strip)
+          super pathname
         end
       end
     end

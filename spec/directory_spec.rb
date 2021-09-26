@@ -69,8 +69,14 @@ describe Ordnung::File do
       expect(d.pathname).to eq "a/b/c/d/e"
     end
     it "can strip" do
-      Ordnung::Directory.strip = "/a/b"
+      Ordnung::Directory.strip = "/a/b/"
       d = Ordnung::Directory.new("/a/b/c/d/e")
+      expect(d).to_not be_nil
+      expect(d.pathname).to eq "c/d/e"
+    end
+    it "strip removes leading slashes" do
+      Ordnung::Directory.strip = "/aa/bb"
+      d = Ordnung::Directory.new("/aa/bb/c/d/e")
       expect(d).to_not be_nil
       expect(d.pathname).to eq "c/d/e"
     end
