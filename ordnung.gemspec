@@ -14,7 +14,8 @@ Gem::Specification.new do |s|
   s.require_paths           = ["lib"]
   s.homepage                = "http://github.com/kkaempf/Ordnung"
   s.license                 = "MIT"
+  s.add_runtime_dependency("optimist")
   s.add_runtime_dependency("json")
-  s.add_runtime_dependency("arango-driver")
+  s.add_runtime_dependency("arango-driver", "~> 3.8")
   s.add_development_dependency("rspec")
 end
