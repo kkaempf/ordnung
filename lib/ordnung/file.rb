@@ -27,8 +27,11 @@ module Ordnung
                      else
                        database.create_collection(name: "Files")
                      end
+      @@indexes ||= Array.new
+      @@indexes << @@collection.create_index(type: "hash", fields: "checksum")
     end
     def self.cleanup
+      @@indexes.each { |i| @@collection.delete_index i }
       @@database.delete_collection(name: "Files") rescue nil
     end
 
@@ -146,7 +149,7 @@ module Ordnung
     #
     def self.duplicates(pathname)
       f = File.new(pathname)
-      @@collection.get_document(attributes: { checksum: f.checksum })
+      @@collection.get_documents({ checksum: f.checksum }).map {|d| self.new d }
     end
 
     #
@@ -173,6 +176,10 @@ module Ordnung
       else
         raise "Unknown argument #{arg.class}:#{arg}"
       end
+    end
+
+    def to_s
+      "#{@name}<#{@size}>"
     end
 
     def created?
