@@ -35,7 +35,7 @@ module Ordnung
     # read mime.type file, find extension match
     # @return [ mime_type, extensions... ]
     def self._find_matching_mimetype ext
-      path = ::File.join(TOPLEVEL, "config", "mime.types")            # assume file in config/
+      path = ::File.join(ORDNUNG_TOPLEVEL, "config", "mime.types")            # assume file in config/
       unless ::File.readable? path
         Logger.error "Can't read mime type file #{path}: #{e}"
         return nil

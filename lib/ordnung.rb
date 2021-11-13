@@ -1,7 +1,7 @@
 require 'yaml'
 
-unless defined?(TOPLEVEL)
-  TOPLEVEL = File.expand_path("..", File.dirname(__FILE__))
+unless defined?(ORDNUNG_TOPLEVEL)
+  ORDNUNG_TOPLEVEL = File.expand_path("..", File.dirname(__FILE__))
 end
 
 require_relative "ordnung/directory"

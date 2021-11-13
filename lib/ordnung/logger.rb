@@ -28,7 +28,7 @@ module Ordnung
       when "stdout", "STDOUT"
         @logfile = STDOUT
       when "", nil
-        logdir = File.join(TOPLEVEL,"log")
+        logdir = File.join(ORDNUNG_TOPLEVEL,"log")
         Dir.mkdir(logdir) rescue nil
         @logname = File.join(logdir, "ordnung.log")
       else
