@@ -31,7 +31,12 @@ module Ordnung
       @@indexes << @@collection.create_index(type: "hash", fields: "checksum")
     end
     def self.cleanup
-      @@indexes.each { |i| @@collection.delete_index i }
+      @@indexes.each do |i|
+        begin
+          @@collection.delete_index index: i
+        rescue
+        end
+      end
       @@database.delete_collection(name: "Files") rescue nil
     end
 
@@ -113,6 +118,12 @@ module Ordnung
     end
 
     #
+    # list Files with offset and limit
+    #
+    def self.list(offset:, limit:)
+      @@collection.list_documents(offset: offset, limit: limit)
+    end
+    #
     # create pathname if needed
     # @param pathname
     # @returns File
@@ -192,6 +203,14 @@ module Ordnung
       document = @@collection.create_document(attributes: attrs)
       @id = document.key
       self
+    end
+    def create?
+      attrs = { name: @name, directory_id: @directory_id, size: @size, mimetype_id: @mimetype_id, checksum: @checksum }
+      if @@collection.document_exists?(attributes: attrs)
+        @@collection.get_document(attributes: attrs)
+      else
+        create!
+      end
     end
     def update
     end
