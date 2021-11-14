@@ -30,9 +30,9 @@ describe Ordnung::File do
   context "File directory stripping" do
     it "has a strip component ending with a slash" do
       Ordnung::File.strip = "/a/b/c"
-      expect(Ordnung::File.strip).to eq '/a/b/c/'
+      expect(Ordnung::File.strip).to eq 'a/b/c/'
       Ordnung::File.strip = "/a/"
-      expect(Ordnung::File.strip).to eq '/a/'
+      expect(Ordnung::File.strip).to eq 'a/'
     end
   end
   context "Ordnung::File class methods" do
@@ -44,7 +44,8 @@ describe Ordnung::File do
       f = Ordnung::File.new(@file_one)
       expect(f.name).to eq 'one'
       expect(f.mimetype).to_not be_nil
-      expect(f.directory.pathname).to eq data_directory
+      # strip leading slash from data_directory
+      expect(f.directory.pathname).to eq data_directory[1..-1]
       expect(f.size).to eq 1
       expect(f.checksum).to_not be_nil
     end
@@ -53,7 +54,8 @@ describe Ordnung::File do
       expect(f.name).to eq ::File.basename(@file_two)
       expect(f.mimetype.mimetype).to eq 'text/plain'
       expect(f.mimetype.extensions).to include(::File.extname(@file_two)[1..-1])
-      expect(f.directory.pathname).to eq data_directory
+      # strip leading slash from data_directory
+      expect(f.directory.pathname).to eq data_directory[1..-1]
       expect(f.size).to eq 2
       expect(f.checksum).to eq "6b51d431df5d7f141cbececcf79edf3dd861c3b4069f0b11661a3eefacbba918"
     end
@@ -91,6 +93,11 @@ describe Ordnung::File do
       expect(g.directory.pathname).to eq(f.directory.pathname)
       expect(g.size).to eq(f.size)
       expect(g.checksum).to eq(f.checksum)
+    end
+    it "detects true duplicates at creation" do
+      f = Ordnung::File.new(@file_one).create!
+      g = Ordnung::File.new(@file_one).create?
+# not yet      expect(g.id).to eq(f.id)
     end
   end
 end
