@@ -190,7 +190,7 @@ module Ordnung
     end
 
     def to_s
-      "#{@name}<#{@size}>"
+      "#{@directory_id}/#{@name}<#{@size}>"
     end
 
     def created?
