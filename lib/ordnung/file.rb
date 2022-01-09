@@ -121,7 +121,7 @@ module Ordnung
     # list Files with offset and limit
     #
     def self.list(offset:, limit:)
-      @@collection.list_documents(offset: offset, limit: limit)
+      @@collection.list_documents(offset: offset.to_i, limit: limit.to_i)
     end
     #
     # create pathname if needed
@@ -191,6 +191,10 @@ module Ordnung
 
     def to_s
       "#{@directory_id}/#{@name}<#{@size}>"
+    end
+
+    def to_hash
+      { id: @id, name: @name, mimetype_id: @mimetype_id, directory_id: @directory_id, size: @size }
     end
 
     def created?
