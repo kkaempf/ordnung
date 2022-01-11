@@ -66,12 +66,12 @@ describe Ordnung::File do
     it "can be deleted via instance methods" do
       f = Ordnung::File.new(@file_one).create!
       expect(f.created?).to be true
-      id = f.id
-      g = Ordnung::File.get(id)
+      key = f.key
+      g = Ordnung::File.get(key)
       expect(g).to_not be_nil
       f.delete
       expect(f.created?).to be false
-      g = Ordnung::File.get(id)
+      g = Ordnung::File.get(key)
       expect(g).to be_nil
     end
   end
@@ -84,10 +84,10 @@ describe Ordnung::File do
     end
     it "can be retrieved with all attributes" do
       f = Ordnung::File.new(@file_one).create!
-      expect(f.id).to_not be_nil
-      g = Ordnung::File.get(f.id)
+      expect(f.key).to_not be_nil
+      g = Ordnung::File.get(f.key)
       expect(g).to_not be_nil
-      expect(g.id).to eq(f.id)
+      expect(g.key).to eq(f.key)
       expect(g.name).to eq(f.name)
       expect(g.mimetype.mimetype).to eq(f.mimetype.mimetype)
       expect(g.directory.pathname).to eq(f.directory.pathname)

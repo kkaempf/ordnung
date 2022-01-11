@@ -167,11 +167,12 @@ module Ordnung
     #
     # instance level functions
     #
-    attr_reader :id, :name, :directory_id, :size, :checksum, :mimetype_id
+    attr_reader :id, :key, :name, :directory_id, :size, :checksum, :mimetype_id
     def initialize arg
       case arg
       when Arango::Document::Base
         @id = arg.id
+        @key = arg.key
         @name = arg.name
         @mimetype_id = arg.mimetype_id
         @directory_id = arg.directory_id
@@ -184,7 +185,7 @@ module Ordnung
         @directory_id = h[:directory_id]
         @size = h[:size]
         @checksum = h[:checksum]
-        @id = nil
+        @id = @key = nil
       else
         raise "Unknown argument #{arg.class}:#{arg}"
       end
@@ -195,11 +196,11 @@ module Ordnung
     end
 
     def to_hash
-      { id: @id, name: @name, mimetype_id: @mimetype_id, directory_id: @directory_id, size: @size }
+      { key: @key, name: @name, mimetype_id: @mimetype_id, directory_id: @directory_id, size: @size }
     end
 
     def created?
-      !@id.nil?
+      !@key.nil?
     end
     alias loaded? created?
 
@@ -207,6 +208,7 @@ module Ordnung
       attrs = { name: @name, directory_id: @directory_id, size: @size, mimetype_id: @mimetype_id, checksum: @checksum }
       document = @@collection.create_document(attributes: attrs)
       @id = document.id
+      @key = document.key
       self
     end
     def create?
@@ -220,8 +222,8 @@ module Ordnung
     def update
     end
     def delete
-      @@collection.delete_document(key: @id)
-      @id = nil
+      @@collection.delete_document(key: @key)
+      @id = @key = nil
     end
     def mimetype
       @mimetype ||= MimeType.get_by_id(@mimetype_id)
