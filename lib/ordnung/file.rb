@@ -7,6 +7,7 @@
 
 require 'ordnung/directory'
 require 'ordnung/mime_type'
+require 'ordnung/edge'
 require 'digest'
 require 'open3'
 
@@ -170,7 +171,7 @@ module Ordnung
     def initialize arg
       case arg
       when Arango::Document::Base
-        @id = arg.key
+        @id = arg.id
         @name = arg.name
         @mimetype_id = arg.mimetype_id
         @directory_id = arg.directory_id
@@ -205,7 +206,7 @@ module Ordnung
     def create!
       attrs = { name: @name, directory_id: @directory_id, size: @size, mimetype_id: @mimetype_id, checksum: @checksum }
       document = @@collection.create_document(attributes: attrs)
-      @id = document.key
+      @id = document.id
       self
     end
     def create?
@@ -227,6 +228,13 @@ module Ordnung
     end
     def directory
       @directory ||= Directory.get_by_id(@directory_id)
+    end
+    #
+    # tagging
+    #
+    def tag t
+      raise "File must be created for tagging" unless created?
+      edge = Edge.new(self, t).create?
     end
   end
 end
