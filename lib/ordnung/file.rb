@@ -13,6 +13,7 @@ require 'open3'
 
 module Ordnung
   class File
+    COLLECTION_NAME = "Files"
     def self.server
       @@database.server
     end
@@ -23,10 +24,10 @@ module Ordnung
       @@database = database
     end
     def self.setup
-      @@collection = if database.collection_exists?(name: "Files")
-                       database.get_collection(name: "Files")
+      @@collection = if database.collection_exists?(name: COLLECTION_NAME)
+                       database.get_collection(name: COLLECTION_NAME)
                      else
-                       database.create_collection(name: "Files")
+                       database.create_collection(name: COLLECTION_NAME)
                      end
       @@indexes ||= Array.new
       @@indexes << @@collection.create_index(type: "hash", fields: "checksum")
@@ -38,7 +39,7 @@ module Ordnung
         rescue
         end
       end
-      @@database.delete_collection(name: "Files") rescue nil
+      @@database.delete_collection(name: COLLECTION_NAME) rescue nil
     end
 
     #
@@ -106,12 +107,25 @@ module Ordnung
     #
 
     #
-    # get File by id
+    # get File by id or key
     # @returns File
     #
     def self.get(id)
+      db, key = id.split '/'
+      if db
+        if key
+          # Files/xxx
+          return nil unless db == COLLECTION_NAME
+        else
+          # xxx
+          key = db
+        end
+      else
+        # nothing
+        return nil
+      end
       begin
-        document = @@collection.get_document(key: id)
+        document = @@collection.get_document(key: key)
       rescue Arango::Error => e
         return nil
       end
@@ -165,6 +179,13 @@ module Ordnung
     end
 
     #
+    # find files by tag
+    #
+    def self.find_by_tag(tag)
+      Edge.find_all_files(tag)
+    end
+
+    #
     # instance level functions
     #
     attr_reader :id, :key, :name, :directory_id, :size, :checksum, :mimetype_id
@@ -193,6 +214,11 @@ module Ordnung
 
     def to_s
       "#{@directory_id}/#{@name}<#{@size}>"
+    end
+
+    # for <Array of File>.include? <File>
+    def == file
+      self.id <=> file.id
     end
 
     def to_hash
@@ -236,7 +262,13 @@ module Ordnung
     #
     def tag t
       raise "File must be created for tagging" unless created?
-      edge = Edge.new(self, t).create?
+      edge = Edge.new(t, self).create?
+    end
+    #
+    # find all tags for this file
+    #
+    def find_all_tags
+      Edge.find_tags_matching(self)
     end
   end
 end

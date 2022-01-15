@@ -3,6 +3,7 @@
 #
 # representing an edge
 #
+# Edges go from Tag to File
 #
 
 require 'open3'
@@ -75,7 +76,7 @@ module Ordnung
     # @returns Edge
     #
     def self.find(from, to)
-      t = @@collection.get_document(attributes: { from: from.id, to: to.id })
+      t = @@collection.get_edge(attributes: { from: from.id, to: to.id })
       t ? Edge.new(t) : nil
     end
 
@@ -88,6 +89,23 @@ module Ordnung
       !!self.find(from, to)
     end
 
+    #
+    # find all files matching a tag
+    # @returns Array of File
+    #
+    def self.find_all_files(tag)
+      edges = @@collection.find_edges_matching({ from: tag.id })
+      edges.map do |e|
+        File.get e[:_to]
+      end
+    end
+    #
+    # find all tags for a file
+    # @returns Array of Tag
+    #
+    def self.find_all_tags(file)
+      @@collection.get_edges({ to: file.id }).map { |e| Tag.new e.attributes[:_from] }
+    end
     #
     # instance level functions
     #

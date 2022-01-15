@@ -145,5 +145,12 @@ module Ordnung
       @@collection.delete_document(key: @id)
       @id = nil
     end
+    #
+    # find all the files with this tag
+    # @returns Array of File
+    #
+    def find_all_files
+      Edge.find_files_matching(self)
+    end
   end
 end
