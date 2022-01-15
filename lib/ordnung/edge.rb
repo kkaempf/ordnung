@@ -104,7 +104,10 @@ module Ordnung
     # @returns Array of Tag
     #
     def self.find_all_tags(file)
-      @@collection.get_edges({ to: file.id }).map { |e| Tag.new e.attributes[:_from] }
+      edges = @@collection.find_edges_matching({ to: file.id })
+      edges.map do |e|
+        Tag.get e[:_from]
+      end
     end
     #
     # instance level functions

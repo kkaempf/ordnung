@@ -268,7 +268,7 @@ module Ordnung
     # find all tags for this file
     #
     def find_all_tags
-      Edge.find_tags_matching(self)
+      Edge.find_all_tags(self)
     end
   end
 end

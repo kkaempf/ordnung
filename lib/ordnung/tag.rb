@@ -9,6 +9,7 @@ require 'open3'
 
 module Ordnung
   class Tag
+    COLLECTION_NAME = "Tags"
     def self.server
       @@database.server
     end
@@ -19,10 +20,10 @@ module Ordnung
       @@database = database
     end
     def self.setup
-      @@collection = if database.collection_exists?(name: "Tags")
-                       database.get_collection(name: "Tags")
+      @@collection = if database.collection_exists?(name: COLLECTION_NAME)
+                       database.get_collection(name: COLLECTION_NAME)
                      else
-                       database.create_collection(name: "Tags")
+                       database.create_collection(name: COLLECTION_NAME)
                      end
       @@indexes ||= Array.new
       @@indexes << @@collection.create_index(type: "hash", fields: "name")
@@ -34,7 +35,7 @@ module Ordnung
         rescue
         end
       end
-      @@database.delete_collection(name: "Tags") rescue nil
+      @@database.delete_collection(name: COLLECTION_NAME) rescue nil
     end
 
     #
@@ -53,8 +54,21 @@ module Ordnung
     # @returns Tag
     #
     def self.get(id)
+      db, key = id.split '/'
+      if db
+        if key
+          # Files/xxx
+          return nil unless db == COLLECTION_NAME
+        else
+          # xxx
+          key = db
+        end
+      else
+        # nothing
+        return nil
+      end
       begin
-        document = @@collection.get_document(key: id)
+        document = @@collection.get_document(key: key)
       rescue Arango::Error => e
         return nil
       end
@@ -105,7 +119,7 @@ module Ordnung
         @id = arg.id
         @name = arg.name
       when String
-        @name = { name: arg }
+        @name = arg
         @id = nil
       else
         raise "Unknown argument #{arg.class}:#{arg}"
@@ -118,6 +132,14 @@ module Ordnung
 
     def to_hash
       { id: @id, name: @name }
+    end
+
+    def == tag
+      if self.id
+        self.id == tag.id
+      else
+        self.name == tag.name
+      end
     end
 
     def created?

@@ -66,5 +66,21 @@ describe Ordnung::Tag do
       expect(g).to include(f2)
       expect(g).to include(f3)
     end
+    it "can find all tags for a file" do
+      @file_one = File.join(data_directory, 'one')
+      f = Ordnung::File.new(@file_one).create!
+      t1 = Ordnung::Tag.new("tag1").create!
+      t2 = Ordnung::Tag.new("tag2").create!
+      t3 = Ordnung::Tag.new("tag3").create!
+      f.tag(t1)
+      f.tag(t2)
+      f.tag(t3)
+      tags = f.find_all_tags
+      expect(tags.class).to eq Array
+      expect(tags.size).to eq 3
+      expect(tags).to include(t1)
+      expect(tags).to include(t2)
+      expect(tags).to include(t3)
+    end
   end
 end
