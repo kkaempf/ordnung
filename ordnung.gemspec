@@ -7,7 +7,7 @@ Gem::Specification.new do |s|
   s.summary                 = "Ordnung library"
   s.description             = "Keep all your data organized"
   s.authors                 = ["Klaus Kämpf"]
-  s.email                   = "kkaempf@suse.de"
+  s.email                   = "kkaempf@gmail.com"
   s.files                   = `git ls-files`.split("\n")
   s.executables             = ["import", "duplicates"]
   s.bindir                  = "bin"
@@ -16,6 +16,6 @@ Gem::Specification.new do |s|
   s.license                 = "MIT"
   s.add_runtime_dependency("optimist")
   s.add_runtime_dependency("json")
-  s.add_runtime_dependency("arango-driver", "~> 3.8")
+  s.add_runtime_dependency("arangodb-driver", "~> 3.10")
   s.add_development_dependency("rspec")
 end
