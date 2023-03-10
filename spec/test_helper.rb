@@ -6,7 +6,7 @@ require 'ordnung'
 require 'rspec'
 require 'simplecov'
 SimpleCov.start
-require 'arango-driver'
+require 'arangodb-driver'
 
 module Helpers
   def connect
