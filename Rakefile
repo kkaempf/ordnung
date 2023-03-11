@@ -12,3 +12,7 @@ RSpec::Core::RakeTask.new(:test) do |task|
 end
 
 task :default => [:clean_logs, :test]
+
+task :doc do
+  system "rdoc -o rdoc lib/**"
+end
