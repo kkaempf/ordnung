@@ -4,23 +4,21 @@ unless defined?(ORDNUNG_TOPLEVEL)
   ORDNUNG_TOPLEVEL = File.expand_path("..", File.dirname(__FILE__))
 end
 
-require_relative "ordnung/gizmo"
 require_relative "ordnung/logger"
-require_relative "ordnung/tag"
 require_relative "ordnung/version"
 
 module Ordnung
-
-  extend self
-
-  def logger
+  def self.logger
     @@logger ||= Logger.new
   end
-  
-  class Ordnung
-    def logger
-      ::Ordnung.logger
-    end
+  def self.import path
+    Gizmo.import path
   end
+end
 
+require_relative "ordnung/gizmo"
+require_relative "ordnung/tag"
+
+module Ordnung
+  Gizmo.init
 end
