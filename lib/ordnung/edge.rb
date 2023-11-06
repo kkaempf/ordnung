@@ -142,8 +142,8 @@ module Ordnung
     alias loaded? created?
 
     def create!
-      edge = @@collection.create_edge(from: @from.id, to: @to.id)
-      @id = edge.key
+      @edge = @@collection.create_edge(from: @from.id, to: @to.id)
+      @id = @edge.key
       self
     end
     def create?
@@ -157,7 +157,7 @@ module Ordnung
     def update
     end
     def delete
-      @@collection.delete_edge(key: @id)
+      @edge.delete if created?
       @id = nil
     end
   end

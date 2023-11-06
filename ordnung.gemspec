@@ -14,8 +14,8 @@ Gem::Specification.new do |s|
   s.require_paths           = ["lib"]
   s.homepage                = "http://github.com/kkaempf/Ordnung"
   s.license                 = "MIT"
-  s.add_runtime_dependency("optimist")
-  s.add_runtime_dependency("json")
+  s.add_runtime_dependency("optimist", "~> 3.0")
+  s.add_runtime_dependency("json", "~> 2.6")
   s.add_runtime_dependency("arangodb-driver", "~> 3.10")
   s.add_development_dependency("rspec")
 end

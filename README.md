@@ -14,3 +14,7 @@ ordnung-server to
 
 * encapsulate the data store
 * provide abstractions for Documents, Tags, etc.
+
+## Installation
+
+gem build

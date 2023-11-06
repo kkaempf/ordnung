@@ -82,5 +82,21 @@ describe Ordnung::Tag do
       expect(tags).to include(t2)
       expect(tags).to include(t3)
     end
+    it "can untag a file" do
+      @file_one = File.join(data_directory, 'one')
+      f = Ordnung::File.new(@file_one).create!
+      t = Ordnung::Tag.new("sample-tag").create!
+      f.tag(t)
+      g = Ordnung::File.find_by_tag(t)
+      expect(g.class).to eq Array
+      found = g.first
+      expect(found).to_not be_nil
+      expect(found.id).to eq f.id
+      f.untag(t)
+      g = Ordnung::File.find_by_tag(t)
+      expect(g.class).to eq Array
+      found = g.first
+      expect(found).to be_nil
+    end
   end
 end

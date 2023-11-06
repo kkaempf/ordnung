@@ -259,7 +259,7 @@ module Ordnung
     end
     #
     # tagging
-    #
+    # @param t [Ordnung::Tag] tag to add to file
     def tag t
       raise "File must be created for tagging" unless created?
       edge = Edge.new(t, self).create?
@@ -269,6 +269,19 @@ module Ordnung
     #
     def find_all_tags
       Edge.find_all_tags(self)
+    end
+    #
+    # untagging
+    # @param t [Ordnung::Tag] tag to remove from file
+    #
+    def untag t
+      raise "File must exists for untagging" unless created?
+      STDERR.puts "Untag - find edge"
+      STDERR.flush
+      edge = Edge.find(t, self)
+      STDERR.puts "Untag - found edge #{edge}"
+      STDERR.flush
+      edge.delete if edge
     end
   end
 end
