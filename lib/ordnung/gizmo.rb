@@ -1,6 +1,5 @@
 require_relative 'name'
 require 'pathname'
-require 'date'
 
 module Ordnung
   attr_reader :id, :nameId, :parent, :addedAt
@@ -10,6 +9,9 @@ module Ordnung
     # Hash of extension:String => implementation:Class
     #   daisy chain            => extension:String
     @@extensions = Hash.new
+    #
+    # logger
+    #
     def self.log
       Ordnung::logger
     end
@@ -59,8 +61,11 @@ module Ordnung
     end
     public
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    def self.import path
-      pathname = Pathname.new path
+    #
+    # recursively import path
+    #
+    def self.import path, parent=nil
+      pathname = Pathname.new ::File.expand_path(path)
       if pathname.directory?
 #        log.info "Gizmo.import directory #{pathname}"
         directory = @@extensions['dir']
@@ -74,17 +79,20 @@ module Ordnung
             next
           when ".directory", ".updated"   # Helper stuff
             next
+          when ".git"                     # git
+            next
           else
             pathname = ::File.join(path, node)
             self.import pathname
           end
         end
       else
-        return if pathname.to_s[-1,1] == '~'
+        return if pathname.to_s[-1,1] == '~'     # skip backups
 #        log.info "Gizmo.import file #{pathname}"
         dir, base = pathname.split
         # create parents
         dir.to_s.split(::File::SEPARATOR).each do |node|
+          next if node == ''
           parent = Gizmo.new node, parent
         end
         elements = base.to_s.split('.')
@@ -103,17 +111,12 @@ module Ordnung
             name << elements.shift    #  move one more element to name
           end
         end
-        raise "Unimplemented #{base}(#{dir})" unless klass
-      end
-    end
-    #
-    # find Gizmo by pattern
-    def self.find pattern
-      case pattern
-      when String
-        id = Name.find pattern
-      else
-        nil
+        if klass.nil?
+          log.warn "Unimplemented #{base}(#{dir})"
+          klass = Ordnung::Blob
+        end
+        gizmo = klass.new(base, parent)
+        log.info "Imported #{gizmo}"
       end
     end
     #
@@ -123,24 +126,63 @@ module Ordnung
       file = `#{exec}`
       case file.chomp
       when "ASCII text", "Unicode text, UTF-8 text", "ASCII text, with no line terminators"
-        @@extensions['txt']
+        return @@extensions['txt']
+      when "Ruby script, ASCII text"
+        return @@extensions['rb']
       else
         log.info "Gizmo.detect #{pathname}:#{exec.inspect}"
+      end
+      Ordnung::Blob
+    end
+    #
+    # find Gizmo by pattern
+    def self.find pattern
+      case pattern
+      when String
+        id = Name.by_name pattern
+      else
+        nil
       end
     end
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     #
-    # initialze all Gizmo implementations
+    # load all Gizmo implementations
     def self.init
+      Name.init
       self.walk_gizmos File.join(File.dirname(__FILE__), "gizmos"), "Ordnung"
     end
     #
     # Gizmo#new
     #
     def initialize name, parent=nil
-      @nameId = Name.create(name)
+#      Gizmo.log.info "Gizmo.new(#{parent} / #{name.inspect})"
+      @nameId = Name.finsert(name)
       @parent = parent
-      @addedAt = DateTime.now
+      @addedAt = Time.now
+#      Gizmo.log.info "\t ==> #{self}"
+    end
+    def to_s
+      "Gizmo(#{self.name}->#{@parent})"
+    end
+    def name
+      Name.by_id(@nameId)
+    end
+    #
+    # (re-)create full path
+    #
+    def path
+      Gizmo.log.info "Gizmo.path(#{@parent.inspect} / #{name.inspect})"
+      if @parent
+        begin
+          ppath = @parent.path
+          ::File.join(ppath, name)
+        rescue
+          Gizmo.log.info "*** Gizmo.path(#{ppath.inspect} / #{name.inspect})"
+          raise
+        end
+      else
+        "/#{name}"
+      end
     end
     #
     # iterate over each duplicate

@@ -7,6 +7,8 @@
 
 module Ordnung
   class Tag < Gizmo
+    def self.init
+    end
     def initialize name, parent=nil
     end
     #

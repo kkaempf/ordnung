@@ -16,9 +16,12 @@ module Ordnung
   end
 end
 
+require_relative "ordnung/db"
 require_relative "ordnung/gizmo"
 require_relative "ordnung/tag"
 
 module Ordnung
+  Db.init
   Gizmo.init
+  Tag.init
 end

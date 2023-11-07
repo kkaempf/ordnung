@@ -1,10 +1,49 @@
+#
+# Name
+# maps Strings to Ids
+#
 module Ordnung
   class Name
-    @@names = Hash.new
-    def Name.create name
-      id = @@names[name]
+    def self.to_hash name
+      { 'name': name.to_s }
+    end
+    def self.index
+      "ordnung-names"
+    end
+    def self.mapping
+      { index: self.index,
+        properties: {
+          name: { type: 'keyword' }
+        }
+      }
+    end
+    def self.init
+      Ordnung::Db.mapping = self.mapping
+    end
+    #
+    # search by id
+    # @return name
+    #
+    def self.by_id id
+      return nil if id.nil?
+      Ordnung::Db.by_id(index, id)['name'] rescue nil
+    end
+    #
+    # search by name
+    # @return id
+    #
+    def self.by_name name
+      return nil if name.nil?
+      Ordnung::Db.by_hash(index, self.to_hash(name)) rescue nil
+    end
+    #
+    # find or insert
+    # @return id
+    #
+    def self.finsert name
+      id = self.by_name name
       return id if id
-      @@names[name] = @@names.size
+      Ordnung::Db.create(index, self.to_hash(name))
     end
   end
 end
