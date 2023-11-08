@@ -19,7 +19,7 @@ module Ordnung
         url: "http://localhost:9200",
         retry_on_failure: 5,
         request_timeout: 10,
-        log: true
+        log: false
       )
     end
     #
@@ -51,16 +51,25 @@ module Ordnung
     # @return id
     #
     def self.by_hash index, hash
+      return nil if hash.empty?
+      if hash.size == 1
+        query = { match: hash }
+      else
+        filter = []
+        hash.each do |key,value|
+          next if value.nil?
+          filter << { match: { key => value } }
+        end
+        query = { bool: { filter: filter } }
+      end
+#      log.info "by_hash #{hash.inspect}: #{query.inspect}"
       result = @@client.search(
         index: index,
         body: {
-          query: {
-            match: hash
-          }
+          query: query
         }
       )
-      hits = result.dig('hits','hits')
-      (hits.empty?) ? nil : hits[0]['_id']
+      result.dig('hits', 'hits', 0, '_id')
     end
     #
     # create record in index, store hash
@@ -71,9 +80,8 @@ module Ordnung
         index: index,
         body: hash
       )
-      id = result['_id']
       @@client.indices.refresh(index: index)
-      return id
+      result['_id']
     end
   end
 end

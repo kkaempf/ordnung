@@ -9,14 +9,37 @@ module Ordnung
       def self.extensions
         ["jpg", "JPG", "jpeg", "JPEG"]
       end
-      def initialize name, parent
-        super name, parent
-        exif = EXIFR::JPEG.new self.path
-        @width = exif.width
-        @height = exif.height
-        @date_time = exif.date_time
-        @latitude = exif.gps.latitude if exif.gps
-        @longitude = exif.gps.longitude if exif.gps
+      #
+      # Database type mapping
+      #
+      def self.mapping
+        { properties: {
+            width:     { type: 'integer' },
+            height:    { type: 'integer' },
+            date_time: { type: 'date' },
+            latitude:  { type: 'keyword' },
+            longitude: { type: 'keyword' }
+          }
+        }
+      end
+      def initialize name, parent_id
+        super name, parent_id
+        case name
+        when String, Pathname
+          Gizmo.log.info "Jpeg.new #{name.inspect}, #{parent_id}"
+          exif = EXIFR::JPEG.new self.path
+          @width = exif.width
+          @height = exif.height
+          @date_time = exif.date_time
+          @latitude = exif.gps.latitude if exif.gps
+          @longitude = exif.gps.longitude if exif.gps
+        when Hash
+          @width = name['width']
+          @height = name['height']
+          @date_time = name['date_time']
+          @latitude = name['latitude']
+          @longitude = name['longitude']
+        end
       end
       def to_s
         super + "\n\t#{@width}x#{@height} #{@date_time} #{@latitude} #{@longitude}"
