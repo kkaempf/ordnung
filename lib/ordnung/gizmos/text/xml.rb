@@ -7,6 +7,9 @@ module Ordnung
       def self.extensions
         ["xml", "XML"]
       end
+      def self.properties
+        nil
+      end
     end
   end
 end

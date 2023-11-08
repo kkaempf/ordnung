@@ -10,15 +10,14 @@ module Ordnung
     def self.index
       "ordnung-names"
     end
-    def self.mapping
-      { index: self.index,
-        properties: {
-          name: { type: 'keyword' }
-        }
+    def self.properties
+      {
+        name: { type: 'keyword' }
       }
     end
     def self.init
-      Ordnung::Db.mapping = self.mapping
+      Ordnung::Db.properties = self.properties
+      Ordnung::Db.index = self.index
     end
     #
     # search by id

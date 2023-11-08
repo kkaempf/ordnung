@@ -4,6 +4,9 @@ module Ordnung
       def self.extensions
         ["txt", "TXT"]
       end
+      def self.properties
+        nil
+      end
     end
   end
 end

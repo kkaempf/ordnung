@@ -48,6 +48,7 @@ module Ordnung
           gizmo = eval "#{module_prefix}::#{klass}"
           extensions = gizmo.extensions
           add_extensions gizmo, extensions
+          Ordnung::Db.collect_properties gizmo.properties rescue nil
         else
           if ::File.directory?(path)
             deferred << [path, "#{module_prefix}::#{x.capitalize}"]
@@ -179,6 +180,8 @@ module Ordnung
       @id = Ordnung::Db.by_hash index, hash
 #      Gizmo.log.info "upsert #{hash.inspect} -> #{@id}"
       return if @id
+      hash['@addedAt'] = @addedAt = Time.now
+      hash['class'] = self.class
       @id = Ordnung::Db.create index, hash
     end
     #
@@ -200,13 +203,12 @@ module Ordnung
     #
     # Database type mapping
     #
-    def self.mapping
-      { index: self.index,
-        properties: {
-          :@nameId =>   { type: 'keyword' },
-          :@parentId => { type: 'keyword' },
-          :@addedAt =>  { type: 'date', format: 'yyyy-MM-dd HH:mm:ss Z' } # 2023-11-08 16:03:40 +0100
-        }
+    def self.properties
+      {
+        :class =>     { type: 'keyword' },
+        :@nameId =>   { type: 'keyword' },
+        :@parentId => { type: 'keyword' },
+        :@addedAt =>  { type: 'date', format: 'yyyy-MM-dd HH:mm:ss Z' } # 2023-11-08 16:03:40 +0100
       }
     end
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -214,8 +216,9 @@ module Ordnung
     # load all Gizmo implementations
     def self.init
       Name.init
-      Ordnung::Db.mapping = self.mapping
+      Ordnung::Db.properties = self.properties
       self.walk_gizmos File.join(File.dirname(__FILE__), "gizmos"), "Ordnung"
+      Ordnung::Db.index = self.index
     end
     #
     # Gizmo#new
@@ -226,7 +229,6 @@ module Ordnung
         Gizmo.log.info "Gizmo.new(#{parent_id} / #{name.inspect})"
         @nameId = Name.finsert(name)
         @parentId = parent_id
-        @addedAt = Time.now
       when Hash
         Gizmo.log.info "Gizmo.new(#{name.inspect}) -> #{parent_id}"
         @id = parent_id

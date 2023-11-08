@@ -7,6 +7,9 @@ module Ordnung
       def self.extensions
         ["vhd"]
       end
+      def self.properties
+        nil
+      end
     end
   end
 end

@@ -7,6 +7,9 @@ module Ordnung
       def self.extensions
         ["img", "IMG"]
       end
+      def self.properties
+        nil
+      end
     end
   end
 end

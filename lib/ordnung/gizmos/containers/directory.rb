@@ -4,6 +4,9 @@ module Ordnung
       def self.extensions
         ["DIR", "dir"]
       end
+      def self.properties
+        nil
+      end
       def initialize name, parent
         super name, parent
         @hash = nil

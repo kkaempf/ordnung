@@ -7,6 +7,9 @@ module Ordnung
       def self.extensions
         ["sqlitedb", "sqlitedb-shm","sqlitedb-wal"]
       end
+      def self.properties
+        nil
+      end
     end
   end
 end

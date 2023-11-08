@@ -4,6 +4,9 @@ module Ordnung
       def self.extensions
         ["aac"]
       end
+      def self.properties
+        nil
+      end
     end
   end
 end

@@ -9,18 +9,15 @@ module Ordnung
       def self.extensions
         ["tiff", "TIFF"]
       end
+      def self.properties
+        nil
+      end
       def initialize name, parent
         super name, parent
-        exif = EXIFR::TIFF.new self.path
-        if exif.exif?
-          @width = exif.width
-          @height = exif.height
-          @date_time = exif.date_time
-          if exif.gps
-            @latitude = exif.gps.latitude
-            @longitude = exif.gps.longitude
-          end
-        end
+        tiff = EXIFR::TIFF.new self.path
+        @width = tiff.width
+        @height = tiff.height
+        @date_time = tiff.date_time
       end
       def to_s
         super + "\n\t#{@width}x#{@height} #{@date_time}"

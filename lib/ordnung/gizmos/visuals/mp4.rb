@@ -4,6 +4,9 @@ module Ordnung
       def self.extensions
         ["mp4"]
       end
+      def self.properties
+        nil
+      end
     end
   end
 end

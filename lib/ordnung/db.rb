@@ -23,19 +23,41 @@ module Ordnung
       )
     end
     #
-    # set mapping
+    # (re-)set properties
     #
-    def self.mapping= mapping
-      log.info "Db.mapping #{mapping.inspect}"
-      return if @@client.indices.exists?(index: mapping[:index])
-      @@client.indices.create(
-        index: mapping[:index],
-        body: {
-          mappings: {
-            properties: mapping[:properties]
+    def self.properties= properties
+      log.info "Db.properties = #{properties.inspect}"
+      @@properties = properties
+    end
+    #
+    # collect properties
+    #
+    def self.collect_properties properties
+      log.info "Db.collect_properties #{properties.inspect}"
+      @@properties.merge!(properties) if properties
+    end
+    #
+    # set index with collected properties
+    #
+    def self.index= index
+      if @@client.indices.exists?(index: index)
+        log.info "Update mapping #{@@properties.inspect}"
+        @@client.indices.put_mapping(
+          index: index,
+          body: {
+            properties: @@properties
           }
-        }
-      )
+        )
+      else
+        @@client.indices.create(
+          index: index,
+          body: {
+            mappings: {
+              properties: @@properties
+            }
+          }
+        )
+      end
     end
     #
     # get record from index by id

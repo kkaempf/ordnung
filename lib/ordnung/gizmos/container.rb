@@ -3,6 +3,9 @@ module Ordnung
     def self.extensions
       nil # abstract
     end
+    def self.properties
+      nil
+    end
     def initialize path
       super path
     end
