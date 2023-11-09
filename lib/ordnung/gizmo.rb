@@ -96,6 +96,7 @@ module Ordnung
           next if node == ''
           gizmo = Gizmo.new(node, parent_id)
           gizmo.upsert
+          Tag.new(node)
           parent_id = gizmo.id
         end
         elements = base.to_s.split('.')
@@ -251,7 +252,8 @@ module Ordnung
       @id
     end
     #
-    # (re-)create full path
+    # File helper method
+    # (re-)create full path  /dir <-parent- dir <-parent- ...
     #
     def path
       if @parentId
@@ -280,7 +282,19 @@ module Ordnung
     # Gizmo#has? tag
     # @return Boolean
     def has? tag
-      false
+      tag.to? @id
+    end
+    #
+    # Gizmo#tag! tag
+    # add tag to gizmo
+    def tag tg
+      tg.tag_gizmo @id
+    end
+    #
+    # Gizmo#untag! tag
+    # remove tag from gizmo
+    def untag tag
+      tag.untag_gizmo @id
     end
   end
 end
