@@ -12,6 +12,9 @@ module Ordnung
   class Tag < Gizmo
     @@index = "testing-tags"
   end
+  class Tagging
+    @@index = "testing-taggings"
+  end
 end
 require 'ordnung'
 require 'rspec'
