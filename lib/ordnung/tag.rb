@@ -32,21 +32,25 @@ module Ordnung
     #
     # Instance methods
     #
-    def initialize name
+    def initialize name, id=nil
 #      Gizmo.log.info "Tag.new(#{name.inspect}"
-      @name = name
-      elements = name.split(':')
-      last = elements.pop
-      parent_id = nil
-      elements.each do |element|
-#        Gizmo.log.info "-> Gizmo.new(#{element.inspect} -> #{parent_id.inspect}"
-        gizmo = Gizmo.new(element, parent_id)
-        parent_id = gizmo.upsert
+      super name
+      case name
+      when String
+        @name = name
+        elements = name.split(':')
+        last = elements.pop
+        parent_id = nil
+        elements.each do |element|
+          gizmo = Gizmo.new(element, parent_id)
+          parent_id = gizmo.upsert
+        end
+        super last, parent_id
+        @id = upsert
+      when Hash
+        @id = id
+        @name = name['@name']
       end
-#      Gizmo.log.info "-> last Gizmo.new(#{last.inspect} -> #{parent_id.inspect}"
-      super last, parent_id
-      @id = upsert
-#      Gizmo.log.info "==> id #{@id.inspect}"
     end
     def name
       @name
