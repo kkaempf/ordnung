@@ -26,22 +26,22 @@ module Ordnung
     # (re-)set properties
     #
     def self.properties= properties
-      log.info "Db.properties = #{properties.inspect}"
+#      log.info "Db.properties = #{properties.inspect}"
       @@properties = properties
     end
     #
     # collect properties
     #
     def self.collect_properties properties
-      log.info "Db.collect_properties #{properties.inspect}"
+#      log.info "Db.collect_properties #{properties.inspect}"
       @@properties.merge!(properties) if properties
     end
     #
     # set index with collected properties
     #
-    def self.index= index
+    def self.create_index index
       if @@client.indices.exists?(index: index)
-        log.info "Update mapping #{@@properties.inspect}"
+#        log.info "Update mapping #{@@properties.inspect}"
         @@client.indices.put_mapping(
           index: index,
           body: {
@@ -58,6 +58,9 @@ module Ordnung
           }
         )
       end
+    end
+    def self.delete_index index
+      @@client.indices.delete(index: index) if @@client.indices.exists?(index: index)
     end
     #
     # get record from index by id

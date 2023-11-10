@@ -8,7 +8,11 @@ module Ordnung
       { 'name': name.to_s }
     end
     def self.index
-      "ordnung-names"
+      @@index ||= "ordnung-names"
+    end
+    # set index (for testing)
+    def self.index= idx
+      @@index = idx
     end
     def self.properties
       {
@@ -17,7 +21,7 @@ module Ordnung
     end
     def self.init
       Ordnung::Db.properties = self.properties
-      Ordnung::Db.index = self.index
+      Ordnung::Db.create_index self.index
     end
     #
     # search by id

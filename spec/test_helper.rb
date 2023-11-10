@@ -2,16 +2,23 @@ DEBUG = false unless defined?(DEBUG)
 TOPLEVEL = File.expand_path(File.join(File.dirname(__FILE__), ".."))
 $:.push(File.join(TOPLEVEL, 'lib'))
 
+module Ordnung
+  class Name
+    @@index = "testing-names"
+  end
+  class Gizmo
+    @@index = "testing-gizmos"
+  end
+  class Tag < Gizmo
+    @@index = "testing-tags"
+  end
+end
 require 'ordnung'
 require 'rspec'
 require 'simplecov'
 SimpleCov.start
-require 'arangodb-driver'
 
 module Helpers
-  def connect
-    Arango.connect_to_server username: "root", password: "", host: "localhost", port: "8529"
-  end
   def directory
     File.join(TOPLEVEL, 'spec')
   end
@@ -24,6 +31,7 @@ RSpec.configure do |config|
   config.include Helpers
   config.color = true
   config.before :all do
+    Ordnung::Db.init
   end
 
   config.after(:all) do
