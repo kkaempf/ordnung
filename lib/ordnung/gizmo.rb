@@ -60,72 +60,81 @@ module Ordnung
         walk_gizmos path, klass
       end
     end
-    public
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     #
     # recursively import path
     #
+    private
+    def self.import_directory pathname, parent_id=nil
+#      log.info "Gizmo.import_directory #{pathname}"
+      directory = @@extensions['dir']
+      gizmo = nil
+      ::Dir.foreach(pathname) do |node|
+        case node
+        when ".", ".."
+          next
+        when "__MACOSX", ".DS_Store"    # Mac stuff
+          next
+        when ".Trash-1000"              # Trashcan
+          next
+        when ".directory", ".updated"   # Helper stuff
+          next
+        when ".git"                     # git
+          next
+        else
+          pathname = ::File.join(path, node)
+          gizmo = self.import pathname
+        end
+      end
+      gizmo
+    end
+    def self.import_file pathname, parent_id=nil
+      return nil if pathname.to_s[-1,1] == '~'     # skip backups
+#      log.info "Gizmo.import file #{pathname}"
+      dir, base = pathname.split
+      # create parents
+      parent_id = nil
+      dir.to_s.split(::File::SEPARATOR).each do |node|
+        next if node == ''
+        gizmo = Gizmo.new(node, parent_id)
+        gizmo.upsert
+        Tag.new(node)
+        parent_id = gizmo.id
+      end
+      elements = base.to_s.split('.')
+      if elements.size == 1 # no extension
+        klass = Gizmo.detect pathname
+      else
+        # find largest extension
+        # for a.b.c.d
+        #  try a - b.c.d, a.b - c.d, a.b.c - d
+        name = elements.shift
+        loop do
+          break if elements.empty?
+          extension = elements.join('.') # build extension from all remaining elements
+          klass = @@extensions[extension]
+#          log.info "\t#{extension} -> #{klass.inspect} ?"
+          break if klass
+          name << "."               # not found
+          name << elements.shift    #  move one more element to name
+        end
+        if klass.nil?
+          log.warn "Unimplemented #{base}(#{dir})"
+          klass = Ordnung::Blob
+        end
+      end
+#      log.info "#{klass}.new(#{base.inspect}, #{parent_id})"
+      gizmo = klass.new(base, parent_id)
+      gizmo.upsert
+      gizmo
+    end
+    public
     def self.import path, parent_id=nil
       pathname = Pathname.new ::File.expand_path(path)
       if pathname.directory?
-#        log.info "Gizmo.import directory #{pathname}"
-        directory = @@extensions['dir']
-        ::Dir.foreach(pathname) do |node|
-          case node
-          when ".", ".."
-            next
-          when "__MACOSX", ".DS_Store"    # Mac stuff
-            next
-          when ".Trash-1000"              # Trashcan
-            next
-          when ".directory", ".updated"   # Helper stuff
-            next
-          when ".git"                     # git
-            next
-          else
-            pathname = ::File.join(path, node)
-            self.import pathname
-          end
-        end
+        self.import_directory pathname, parent_id
       else
-        return if pathname.to_s[-1,1] == '~'     # skip backups
-#        log.info "Gizmo.import file #{pathname}"
-        dir, base = pathname.split
-        # create parents
-        parent_id = nil
-        dir.to_s.split(::File::SEPARATOR).each do |node|
-          next if node == ''
-          gizmo = Gizmo.new(node, parent_id)
-          gizmo.upsert
-          Tag.new(node)
-          parent_id = gizmo.id
-        end
-        elements = base.to_s.split('.')
-        if elements.size == 1 # no extension
-          klass = Gizmo.detect pathname
-        else
-          # find largest extension
-          # for a.b.c.d
-          #  try a - b.c.d, a.b - c.d, a.b.c - d
-          name = elements.shift
-          loop do
-            break if elements.empty?
-            extension = elements.join('.') # build extension from all remaining elements
-            klass = @@extensions[extension]
-#            log.info "\t#{extension} -> #{klass.inspect} ?"
-            break if klass
-            name << "."               # not found
-            name << elements.shift    #  move one more element to name
-          end
-          if klass.nil?
-            log.warn "Unimplemented #{base}(#{dir})"
-            klass = Ordnung::Blob
-          end
-        end
-#        log.info "#{klass}.new(#{base.inspect}, #{parent_id})"
-        gizmo = klass.new(base, parent_id)
-        gizmo.upsert
-        log.info "Imported #{gizmo}"
+        self.import_file pathname, parent_id
       end
     end
     #
@@ -177,7 +186,7 @@ module Ordnung
     end
     #
     # update or insert
-    # @return
+    # @return id
     #
     def upsert
       hash = to_hash
@@ -196,7 +205,13 @@ module Ordnung
       raise "No id given" if id.nil?
       hash = Ordnung::Db.by_id(self.index, id)
 #      log.info "Gizmo.by_id #{id} -> #{hash.inspect}"
-      (hash) ? Gizmo.new(hash, id) : nil
+      gizmo = nil
+      if hash
+        log.info "Gizmo.by_id hash #{hash.inspect}"
+        klass = hash['class']
+        gizmo = (eval klass).new hash, id
+      end
+      gizmo
     end
     #
     # Database index name
