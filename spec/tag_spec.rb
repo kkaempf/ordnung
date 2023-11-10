@@ -1,102 +1,31 @@
-# test files api
+# test Tag api
 require_relative "test_helper"
 
 describe Ordnung::Tag do
   before :all do
-    @server = connect
-    begin
-      @server.delete_database(name: "Testing")
-    rescue
-    end
-    @database = @server.create_database(name: "Testing")
-    Ordnung.database = @database
-  end
-
-  before :each do
-    Ordnung.setup
-  end
-
-  after :each do
-    Ordnung.cleanup
+    @file_one = ::File.join(data_directory, 'one')
+    @file_two = ::File.join(data_directory, 'two.txt')
+    @file_three = ::File.join(data_directory, 'three.bytes')
+    Ordnung::Tag.init
   end
 
   after :all do
-    @server.delete_database(name: "Testing")
+    Ordnung::Db.delete_index(Ordnung::Tag.index)
+    Ordnung::Db.delete_index(Ordnung::Name.index)
   end
 
   context "tag creation" do
-    it "can create a tag" do
-      t = Ordnung::Tag.new("sample-tag").create!
+    it "can create a simple tag" do
+      t = Ordnung::Tag.new("sample-tag")
+      expect(t).to_not be_nil
       expect(t.id).to_not be_nil
+      expect(t.name).to eq("sample-tag")
     end
-    it "can tag a file" do
-      @file_one = File.join(data_directory, 'one')
-      f = Ordnung::File.new(@file_one).create!
-      t = Ordnung::Tag.new("sample-tag").create!
-      expect(f.id).to_not be_nil
+    it "can create a complex tag" do
+      t = Ordnung::Tag.new("file:visual:jpeg")
+      expect(t).to_not be_nil
       expect(t.id).to_not be_nil
-      f.tag(t)
-    end
-    it "can find a file by tag" do
-      @file_one = File.join(data_directory, 'one')
-      f = Ordnung::File.new(@file_one).create!
-      t = Ordnung::Tag.new("sample-tag").create!
-      f.tag(t)
-      g = Ordnung::File.find_by_tag(t)
-      expect(g.class).to eq Array
-      found = g.first
-      expect(found).to_not be_nil
-      expect(found.id).to eq f.id
-    end
-    it "can find many files by tag" do
-      @file_one = File.join(data_directory, 'one')
-      @file_two = File.join(data_directory, 'two.txt')
-      @file_three = File.join(data_directory, 'three.bytes')
-      f1 = Ordnung::File.new(@file_one).create!
-      f2 = Ordnung::File.new(@file_two).create!
-      f3 = Ordnung::File.new(@file_three).create!
-      t = Ordnung::Tag.new("sample-tag").create!
-      f1.tag(t)
-      f2.tag(t)
-      f3.tag(t)
-      g = Ordnung::File.find_by_tag(t)
-      expect(g.class).to eq Array
-      expect(g.size).to eq 3
-      expect(g).to include(f1)
-      expect(g).to include(f2)
-      expect(g).to include(f3)
-    end
-    it "can find all tags for a file" do
-      @file_one = File.join(data_directory, 'one')
-      f = Ordnung::File.new(@file_one).create!
-      t1 = Ordnung::Tag.new("tag1").create!
-      t2 = Ordnung::Tag.new("tag2").create!
-      t3 = Ordnung::Tag.new("tag3").create!
-      f.tag(t1)
-      f.tag(t2)
-      f.tag(t3)
-      tags = f.find_all_tags
-      expect(tags.class).to eq Array
-      expect(tags.size).to eq 3
-      expect(tags).to include(t1)
-      expect(tags).to include(t2)
-      expect(tags).to include(t3)
-    end
-    it "can untag a file" do
-      @file_one = File.join(data_directory, 'one')
-      f = Ordnung::File.new(@file_one).create!
-      t = Ordnung::Tag.new("sample-tag").create!
-      f.tag(t)
-      g = Ordnung::File.find_by_tag(t)
-      expect(g.class).to eq Array
-      found = g.first
-      expect(found).to_not be_nil
-      expect(found.id).to eq f.id
-      f.untag(t)
-      g = Ordnung::File.find_by_tag(t)
-      expect(g.class).to eq Array
-      found = g.first
-      expect(found).to be_nil
+      expect(t.name).to eq("file:visual:jpeg")
     end
   end
 end

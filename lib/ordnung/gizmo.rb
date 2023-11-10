@@ -117,11 +117,12 @@ module Ordnung
             name << "."               # not found
             name << elements.shift    #  move one more element to name
           end
+          if klass.nil?
+            log.warn "Unimplemented #{base}(#{dir})"
+            klass = Ordnung::Blob
+          end
         end
-        if klass.nil?
-          log.warn "Unimplemented #{base}(#{dir})"
-          klass = Ordnung::Blob
-        end
+#        log.info "#{klass}.new(#{base.inspect}, #{parent_id})"
         gizmo = klass.new(base, parent_id)
         gizmo.upsert
         log.info "Imported #{gizmo}"
@@ -132,15 +133,16 @@ module Ordnung
     def self.detect pathname
       exec = "file -b #{pathname.to_s.inspect}"
       file = `#{exec}`
+      klass = nil
       case file.chomp
       when "ASCII text", "Unicode text, UTF-8 text", "ASCII text, with no line terminators"
-        return @@extensions['txt']
+        klass = @@extensions['txt']
       when "Ruby script, ASCII text"
-        return @@extensions['rb']
+        klass = @@extensions['rb']
       else
-        log.info "Gizmo.detect #{pathname}:#{exec.inspect}"
+        klass = Ordnung::Blob
       end
-      Ordnung::Blob
+      klass
     end
     #
     # find Gizmo id by pattern

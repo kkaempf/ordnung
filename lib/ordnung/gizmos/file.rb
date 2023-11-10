@@ -29,7 +29,7 @@ module Ordnung
         @size = name['size']
         @time = name['time']
       end
-      Gizmo.log.info "File.new(#{name.inspect}) #{@hash} #{@size} #{@time}"
+#      Gizmo.log.info "File.new(#{name.inspect}) #{@hash} #{@size} #{@time}"
     end
     def to_s
       "#{self.path} #{@size} #{@time} #{@hash}"

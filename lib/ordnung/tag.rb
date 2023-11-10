@@ -25,48 +25,34 @@ module Ordnung
     def self.index= idx
       @@index = idx
     end
-    def self.properties
-      {
-        from: { type: "keyword"}, # from tag
-        to:   { type: "keyword"}  # to gizmo
-      }
-    end
     def self.init
-      Ordnung::Db.properties = self.properties
-      Ordnung::Db.create_index self.index
-    end
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    #
-    # Database methods
-    #
-    def index
-      Tag.index
-    end
-    #
-    #
-    # Convert instance variables to Hash
-    #
-    def to_hash
-      { from: @id, to: @to }
+      Ordnung::Gizmo.init
     end
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     #
     # Instance methods
     #
-    def initialize name, parent_id=nil
-      super name, parent_id
-      upsert
-    end
-    def tag_gizmo gizmo_id
-      raise "No existant tag" if @id.nil?
-      @to = gizmo_id
-      hash = to_hash
-      unless Ordnung::Db.by_hash index, hash
-        Gizmo.log.info "Tag.upsert #{hash.inspect}"
-        Ordnung::Db.create index, hash
+    def initialize name
+#      Gizmo.log.info "Tag.new(#{name.inspect}"
+      @name = name
+      elements = name.split(':')
+      last = elements.pop
+      parent_id = nil
+      elements.each do |element|
+#        Gizmo.log.info "-> Gizmo.new(#{element.inspect} -> #{parent_id.inspect}"
+        gizmo = Gizmo.new(element, parent_id)
+        parent_id = gizmo.upsert
       end
+#      Gizmo.log.info "-> last Gizmo.new(#{last.inspect} -> #{parent_id.inspect}"
+      super last, parent_id
+      @id = upsert
+#      Gizmo.log.info "==> id #{@id.inspect}"
     end
-    def untag_gizmo gizmo_id
+    def name
+      @name
+    end
+    def id
+      @id
     end
     #
     # return Iterator over all Gizmos with this tag
