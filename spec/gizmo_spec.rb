@@ -1,7 +1,7 @@
 # test files api
 require_relative "test_helper"
 
-describe Ordnung::File do
+describe Ordnung::Gizmo do
   before :all do
     @file_one = ::File.join(data_directory, 'one')
     @file_two = ::File.join(data_directory, 'two.txt')
@@ -14,10 +14,12 @@ describe Ordnung::File do
     Ordnung::Db.delete_index(Ordnung::Name.index)
   end
 
-  context "Ordnung::File class methods" do
-    it "can create a new file entry" do
-      f = Ordnung::File.new(@file_one)
-      expect(f).to_not be_nil
+  context "Ordnung::Gizmo class methods" do
+    it "can import a file" do
+      Ordnung::Gizmo.import @file_one
+    end
+    it "can import a directory" do
+      Ordnung::Gizmo.import data_directory
     end
   end
   context "Ordnung::File instance methods" do
