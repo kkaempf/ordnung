@@ -27,7 +27,8 @@ module Ordnung
       extensions.each do |ext|
         existing_klass = self.find_implementation_for ext
         if existing_klass
-          raise "#{klass} claims extension #{ext} already claimed by #{existing_klass}"
+          next if existing_klass == klass
+          raise "#{klass} claims extension #{ext.inspect} already claimed by #{existing_klass}"
         end
         @@extensions[ext] = klass
       end
@@ -222,7 +223,7 @@ module Ordnung
     def self.init
       Name.init
       Ordnung::Db.properties = self.properties
-      self.walk_gizmos File.join(File.dirname(__FILE__), "gizmos"), "Ordnung"
+      self.walk_gizmos ::File.join(::File.dirname(__FILE__), "gizmos"), "Ordnung"
       Ordnung::Db.create_index self.index
     end
     #
@@ -231,11 +232,11 @@ module Ordnung
     def initialize name, parent_id=nil
       case name
       when String, Pathname
-        Gizmo.log.info "Gizmo.new(#{parent_id} / #{name.inspect})"
+#        Gizmo.log.info "Gizmo.new(#{parent_id} / #{name.inspect})"
         @nameId = Name.finsert(name)
         @parentId = parent_id
       when Hash
-        Gizmo.log.info "Gizmo.new(#{name.inspect}) -> #{parent_id}"
+#        Gizmo.log.info "Gizmo.new(#{name.inspect}) -> #{parent_id}"
         @id = parent_id
         @parentId = name['@parentId']
         @nameId = name['@nameId']
