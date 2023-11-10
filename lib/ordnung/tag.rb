@@ -19,7 +19,11 @@ module Ordnung
     # Database index name
     #
     def self.index
-      "ordnung-tags"
+      @@index ||= "ordnung-tags"
+    end
+    # set index (for testing)
+    def self.index= idx
+      @@index = idx
     end
     def self.properties
       {
@@ -29,7 +33,7 @@ module Ordnung
     end
     def self.init
       Ordnung::Db.properties = self.properties
-      Ordnung::Db.index = self.index
+      Ordnung::Db.create_index self.index
     end
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     #

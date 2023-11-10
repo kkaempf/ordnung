@@ -199,7 +199,11 @@ module Ordnung
     # Database index name
     #
     def self.index
-      "ordnung-gizmos"
+      @@index ||= "ordnung-gizmos"
+    end
+    # set index (for testing)
+    def self.index= idx
+      @@index = idx
     end
     #
     # Database type mapping
@@ -219,7 +223,7 @@ module Ordnung
       Name.init
       Ordnung::Db.properties = self.properties
       self.walk_gizmos File.join(File.dirname(__FILE__), "gizmos"), "Ordnung"
-      Ordnung::Db.index = self.index
+      Ordnung::Db.create_index self.index
     end
     #
     # Gizmo#new
