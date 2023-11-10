@@ -17,7 +17,8 @@ module Ordnung
     #
     #
     def initialize name, parent_id=nil
-      super name, parent_id
+      super
+      Gizmo.log.info "File.new(#{name})"
       case name
       when String, Pathname
         path = self.path
@@ -29,7 +30,12 @@ module Ordnung
         @size = name['size']
         @time = name['time']
       end
-#      Gizmo.log.info "File.new(#{name.inspect}) #{@hash} #{@size} #{@time}"
+    end
+    def == file
+      super file &&
+        @hash==file.hash &&
+        @size == file.size &&
+        @time == file.time
     end
     def to_s
       "#{self.path} #{@size} #{@time} #{@hash}"
