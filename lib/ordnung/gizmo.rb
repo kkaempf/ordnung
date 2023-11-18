@@ -82,8 +82,8 @@ module Ordnung
         when ".git"                     # git
           next
         else
-          pathname = ::File.join(path, node)
-          gizmo = self.import pathname
+          path = ::File.join(pathname, node)
+          gizmo = self.import path
         end
       end
       gizmo
@@ -123,7 +123,7 @@ module Ordnung
           klass = Ordnung::Blob
         end
       end
-#      log.info "#{klass}.new(#{base.inspect}, #{parent_id})"
+      log.info "#{__callee__}: #{klass}.new(#{base.inspect}, #{parent_id})"
       gizmo = klass.new(base, parent_id)
       gizmo.upsert
       gizmo
@@ -207,7 +207,7 @@ module Ordnung
 #      log.info "Gizmo.by_id #{id} -> #{hash.inspect}"
       gizmo = nil
       if hash
-        log.info "Gizmo.by_id hash #{hash.inspect}"
+#        log.info "Gizmo.by_id hash #{hash.inspect}"
         klass = hash['class']
         gizmo = (eval klass).new hash, id
       end

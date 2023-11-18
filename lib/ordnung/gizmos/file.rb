@@ -32,8 +32,8 @@ module Ordnung
       end
     end
     def == file
-      super file &&
-        @hash==file.hash &&
+      super && file.class == self.class &&
+        @hash == file.hash &&
         @size == file.size &&
         @time == file.time
     end

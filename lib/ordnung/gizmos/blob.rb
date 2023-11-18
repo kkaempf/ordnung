@@ -7,8 +7,8 @@ module Ordnung
       nil
     end
     def initialize name, parent_id
+#      Gizmo.log.info "#{__callee__}: Blob.new(#{name.inspect}, #{parent_id.inspect})"
       super
-      Gizmo.log.info "Blob.new(#{name.inspect}, #{parent_id.inspect})"
     end
   end
 end
