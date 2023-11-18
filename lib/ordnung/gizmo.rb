@@ -193,8 +193,8 @@ module Ordnung
       @id = Ordnung::Db.by_hash index, hash
 #      Gizmo.log.info "upsert #{hash.inspect} -> #{@id}"
       return if @id
-      hash['@addedAt'] = @addedAt = Time.now
-      hash['class'] = self.class
+      hash[:@addedAt] = @addedAt = Time.now
+      hash[:class] = self.class
       @id = Ordnung::Db.create index, hash
     end
     #
