@@ -8,6 +8,7 @@ describe Ordnung::Tag do
     @file_three = ::File.join(data_directory, 'three.bytes')
     @tag_one = Ordnung::Tag.new("tag-one")
     @tag_two = Ordnung::Tag.new("tag:two")
+    Ordnung::Tag.init
     Ordnung::Tagging.init
   end
 
@@ -20,7 +21,9 @@ describe Ordnung::Tag do
   context "tagging creation" do
     it "can create a simple tagging" do
       gizmo = Ordnung::Gizmo.import @file_one
+      gizmo.upsert
       tagging = Ordnung::Tagging.new(@tag_one, gizmo)
+      tagging.upsert
       expect(tagging.gizmo_id).to eq(gizmo.id)
       expect(tagging.gizmo).to eq(gizmo)
       expect(tagging.tag_id).to eq(@tag_one.id)
