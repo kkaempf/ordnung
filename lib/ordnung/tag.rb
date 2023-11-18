@@ -26,14 +26,15 @@ module Ordnung
       @@index = idx
     end
     def self.init
-      Ordnung::Gizmo.init
+      super
+      Ordnung::Db.create_index self.index
     end
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     #
     # Instance methods
     #
     def initialize name, id=nil
-#      Gizmo.log.info "Tag.new(#{name.inspect}"
+      Gizmo.log.info "Tag.new(#{name.inspect})"
       super name
       case name
       when String
