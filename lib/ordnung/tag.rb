@@ -34,7 +34,7 @@ module Ordnung
     # Instance methods
     #
     def initialize name, id=nil
-      Gizmo.log.info "Tag.new(#{name.inspect})"
+#      Gizmo.log.info "Tag.new(#{name.inspect})"
       super name
       case name
       when String

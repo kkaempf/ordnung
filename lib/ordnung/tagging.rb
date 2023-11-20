@@ -40,14 +40,14 @@ module Ordnung
     # Database methods
     #
     def index
-      Tag.index
+      Tagging.index
     end
     #
     #
     # Convert instance variables to Hash
     #
     def to_hash
-      { tag_id: @tag, gizmo_id: @gizmo }
+      { tag_id: @tag_id, gizmo_id: @gizmo_id }
     end
     #
     # update or insert

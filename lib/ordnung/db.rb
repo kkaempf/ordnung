@@ -1,4 +1,4 @@
-#
+##
 # Database abstraction
 #
 require 'opensearch'
@@ -68,6 +68,7 @@ module Ordnung
     #
     def self.by_id index, id
       result = @@client.get(index: index, id: id)
+#      log.info "Db.#{__callee__} #{index.inspect} - #{id.inspect}"
       return nil if result.nil?
       result['_source']
     end
@@ -87,7 +88,7 @@ module Ordnung
         end
         query = { bool: { filter: filter } }
       end
-#      log.info "by_hash #{hash.inspect}: #{query.inspect}"
+#      log.info "Db.#{__callee__} #{index.inspect} - #{hash.inspect}: #{query.inspect}"
       result = @@client.search(
         index: index,
         body: {
@@ -101,6 +102,7 @@ module Ordnung
     # @return id
     #
     def self.create index, hash
+#      log.info "#{__callee__}: #{index} #{hash.inspect}"
       result = @@client.create(
         index: index,
         body: hash

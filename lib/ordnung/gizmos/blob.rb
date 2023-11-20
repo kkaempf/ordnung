@@ -7,8 +7,11 @@ module Ordnung
       nil
     end
     def initialize name, parent_id
-#      Gizmo.log.info "#{__callee__}: Blob.new(#{name.inspect}, #{parent_id.inspect})"
       super
+#      Gizmo.log.info "Blob.#{__callee__}(#{name.class}:#{name}, #{parent_id.inspect})"
+    end
+    def == blob
+      super && self.class == blob.class
     end
   end
 end

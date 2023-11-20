@@ -193,7 +193,7 @@ module Ordnung
       @id = Ordnung::Db.by_hash index, hash
 #      Gizmo.log.info "upsert #{hash.inspect} -> #{@id}"
       return if @id
-      hash[:@addedAt] = @addedAt = Time.now
+      hash[:@addedAt] = @addedAt = Time.now.floor
       hash[:class] = self.class
       @id = Ordnung::Db.create index, hash
     end
@@ -235,6 +235,7 @@ module Ordnung
       }
     end
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    attr_reader :nameId, :parentId, :addedAt
     #
     # load all Gizmo implementations
     def self.init
@@ -247,6 +248,7 @@ module Ordnung
     # Gizmo#new
     #
     def initialize name, parent_id=nil
+#      Gizmo.log.info "Gizmo.new(#{name.class}:#{name})"
       case name
       when String, Pathname
 #        Gizmo.log.info "Gizmo.new(#{parent_id} / #{name.inspect})"
@@ -257,7 +259,7 @@ module Ordnung
         @id = parent_id
         @parentId = name['@parentId']
         @nameId = name['@nameId']
-        @addedAt = name['@addedAt']
+        @addedAt = Time.new(name['@addedAt'])
       else
         raise "Can't create Gizmo from #{name.inspect}"
       end
@@ -265,6 +267,12 @@ module Ordnung
     end
     def to_s
       "Gizmo(#{self.name}->#{@parentId})"
+    end
+    def == gizmo
+      self.class == gizmo.class &&
+        @nameId == gizmo.nameId &&
+        @parentId == gizmo.parentId &&
+        @addedAt == gizmo.addedAt
     end
     def name
       raise "No name" if @nameId.nil?

@@ -3,12 +3,12 @@ require_relative "test_helper"
 
 describe Ordnung::Tag do
   before :all do
+    Ordnung::Tag.init
     @file_one = ::File.join(data_directory, 'one')
     @file_two = ::File.join(data_directory, 'two.txt')
     @file_three = ::File.join(data_directory, 'three.bytes')
     @tag_one = Ordnung::Tag.new("tag-one")
     @tag_two = Ordnung::Tag.new("tag:two")
-    Ordnung::Tag.init
     Ordnung::Tagging.init
   end
 
@@ -25,7 +25,8 @@ describe Ordnung::Tag do
       tagging = Ordnung::Tagging.new(@tag_one, gizmo)
       tagging.upsert
       expect(tagging.gizmo_id).to eq(gizmo.id)
-      expect(tagging.gizmo).to eq(gizmo)
+      tg = tagging.gizmo
+      expect(tg).to eq(gizmo)
       expect(tagging.tag_id).to eq(@tag_one.id)
       expect(tagging.tag).to eq(@tag_one)
     end

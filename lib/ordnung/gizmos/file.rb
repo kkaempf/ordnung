@@ -10,25 +10,26 @@ module Ordnung
       {
       	hash: { type: 'keyword' },
         size: { type: 'integer' },
-        time: { type: 'date' }
+        time: { type: 'date', format: 'yyyy-MM-dd HH:mm:ss Z' } # 2023-11-08 16:03:40 +0100
       }
     end
     #
     #
     #
+    attr_reader :hash, :size, :time
     def initialize name, parent_id=nil
       super
-      Gizmo.log.info "File.new(#{name})"
+#      Gizmo.log.info "File.new(#{name.class}:#{name})"
       case name
       when String, Pathname
         path = self.path
         @hash = `sha256sum -b #{path}`.split(' ')[0]
         @size = ::File.size(path)
-        @time = ::File.mtime(path)
+        @time = ::File.mtime(path).floor
       when Hash
-        @hash = name['hash']
-        @size = name['size']
-        @time = name['time']
+        @hash = name['@hash']
+        @size = name['@size']
+        @time = Time.new(name['@time'])
       end
     end
     def == file
