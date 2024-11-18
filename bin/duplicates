@@ -13,17 +13,7 @@ if opts[:debug_given]
   Logger.level = Logger::DEBUG
 end
 
-require 'arango-driver'
-server = Arango.connect_to_server username: "root", password: "", host: "localhost", port: "8529"
-
 require 'ordnung'
-database = if server.database_exists?(name: "Ordnung")
-             server.get_database(name: "Ordnung")
-           else
-             server.create_database(name: "Ordnung")
-           end
-Ordnung.database = database
-Ordnung.setup
 
 dups = Ordnung::File.duplicates(ARGV.shift)
 puts "Dups #{dups.count}"
