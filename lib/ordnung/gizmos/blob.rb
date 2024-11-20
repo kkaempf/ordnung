@@ -22,7 +22,7 @@ module Ordnung
     # Create +Blob* instance
     #
     def initialize name, parent_id
-      super
+      super name, parent_id
 #      Gizmo.log.info "Blob.#{__callee__}(#{name.class}:#{name}, #{parent_id.inspect})"
     end
     #
