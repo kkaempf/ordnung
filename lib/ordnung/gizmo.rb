@@ -4,16 +4,16 @@ require 'pathname'
 module Ordnung
   #
   # A Gizmo is the core item of Ordnung.
-  # It actually is a file in the filesystem.
-  # But as we're indexing all kinds of files (like pdfs, jpegs, ...)
-  # and `File` is too generic (and easily conflicts with Ruby's File)
-  # `Gizmo` appeared to be an appropriate name for this class.
+  #
+  # It is a string representation in the database with an associated database id for quick access
+  #
   #
   class Gizmo
     private
     #
     # Hash of extension:String => implementation:Class
     #   daisy chain            => extension:String
+    #
     @@extensions = Hash.new
     #
     # logger
@@ -31,7 +31,8 @@ module Ordnung
     #
     # add klass implementing extensions
     #
-    def self.add_extensions klass, extensions=nil
+    def self.add_extensions klass
+      extensions = klass.extensions
       return unless extensions # skip abstract implementation (i.e. Container)
       extensions.each do |ext|
         existing_klass = self.find_implementation_for ext
@@ -47,6 +48,9 @@ module Ordnung
     #
     def self.walk_gizmos dir, module_prefix
       deferred = []
+      #
+      # walk over the implemetation files
+      #
       ::Dir.foreach(dir) do |x|
         path = ::File.join(dir, x)
         case x
@@ -54,15 +58,16 @@ module Ordnung
           next
         when /^(.*)\.rb$/
           klass = $1.capitalize
-          log.info "Gizmo #{path}(#{klass})"
+          log.info "Found #{path} implementing #{klass}"
           require path
           gizmo = eval "#{module_prefix}::#{klass}"
-          extensions = gizmo.extensions
-          add_extensions gizmo, extensions
+          add_extensions gizmo
           Ordnung::Db.collect_properties gizmo.properties rescue nil
         else
           if ::File.directory?(path)
             deferred << [path, "#{module_prefix}::#{x.capitalize}"]
+          else
+            log.info "Skipping unknown implementation file #{path} (not .rb or directory)"
           end
         end
       end

@@ -4,10 +4,11 @@ module Ordnung
   #
   # representing a tagging
   # Tagging is two Indices
-  # 1. Name of tag foo:bar:baz as Gizmo foo <-parent- Gizmo bar <-parent- Gizmo baz
-  # 2. Tagging is a Gizmo -> Gizmo relationship
+  # 1. Name of +Tag+ foo:bar:baz as Gizmo foo <-parent- Gizmo bar <-parent- Gizmo baz
+  # 2. +Tagging+ (here) is a Gizmo -> Gizmo relationship
   #
-
+  # see also +Tag+
+  #
   class Tagging
     #
     # make logger accessible inside class
@@ -28,7 +29,7 @@ module Ordnung
       @@index = idx
     end
     #
-    # database properties (aka type mapping)
+    # properties of a tagging, linking a +Tag+ with a +Gizmo+ (representing an on-disk file)
     #
     def self.properties
       {

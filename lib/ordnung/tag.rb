@@ -3,14 +3,15 @@
 #
 module Ordnung
   #
-  # Tag
+  # Tag - a label identifying files
   #
   # representing a tag
-  # Tagging is two Indices
-  # 1. Name of tag foo:bar:baz as Gizmo foo <-parent- Gizmo bar <-parent- Gizmo baz
-  # 2. Tagging is a Gizmo -> Gizmo relationship
+  # +Tagging+ is two Indices
+  # 1. Name of +Tag+ (here) foo:bar:baz as Gizmo foo <-parent- Gizmo bar <-parent- Gizmo baz
+  # 2. +Tagging+ is a Gizmo -> Gizmo relationship
   #
-
+  # see also +Tagging+
+  #
   class Tag < Gizmo
     #
     # make logger available inside +Tag+
