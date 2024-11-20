@@ -4,15 +4,22 @@
 require 'opensearch'
 
 module Ordnung
+  #
+  # Backend database
+  #
+  # Encapsulating all database I/O and the actual database being used.
+  #
+  # Current database target: OpenSearch (resp. ElasticSearch)
+  #
   class Db
     #
-    # logger
+    # Db.log makes the 'upstream' log API available inside Db
     #
     def self.log
       Ordnung::logger
     end
     #
-    # initialize
+    # Create a new database backend instance
     #
     def self.init
       @@client = OpenSearch::Client.new(
@@ -23,17 +30,19 @@ module Ordnung
       )
     end
     #
-    # (re-)set properties
+    # (re-)set +properties+
+    #
+    # properties is a map of { name: type } pairs declaring the +type+ of property +name+
     #
     def self.properties= properties
-#      log.info "Db.properties = #{properties.inspect}"
+      log.info "Db.properties = #{properties.inspect}"
       @@properties = properties
     end
     #
     # collect properties
     #
     def self.collect_properties properties
-#      log.info "Db.collect_properties #{properties.inspect}"
+      log.info "Db.collect_properties #{properties.inspect}"
       @@properties.merge!(properties) if properties
     end
     #
@@ -41,7 +50,11 @@ module Ordnung
     #
     def self.create_index index
       if @@client.indices.exists?(index: index)
-#        log.info "Update mapping #{@@properties.inspect}"
+        current_mapping = @@client.indices.get_mapping(index: index)
+        log.info "Db.get_mapping(#{index}): #{current_mapping.inspect}"
+        current_properties = current_mapping[index]['mappings']['properties'] rescue nil
+        log.info "Db.current_properties(#{index}): #{current_properties.inspect}"
+        log.info "Db.put_mapping(#{index}): #{@@properties.inspect}"
         @@client.indices.put_mapping(
           index: index,
           body: {
@@ -49,6 +62,7 @@ module Ordnung
           }
         )
       else
+        log.info "Db.create_index(#{index})"
         @@client.indices.create(
           index: index,
           body: {
@@ -59,6 +73,9 @@ module Ordnung
         )
       end
     end
+    #
+    # delete index
+    #
     def self.delete_index index
       @@client.indices.delete(index: index) if @@client.indices.exists?(index: index)
     end
@@ -68,7 +85,7 @@ module Ordnung
     #
     def self.by_id index, id
       result = @@client.get(index: index, id: id)
-#      log.info "Db.#{__callee__} #{index.inspect} - #{id.inspect}"
+      log.info "Db.#{__callee__} #{index.inspect} - #{id.inspect}"
       return nil if result.nil?
       result['_source']
     end
@@ -88,7 +105,7 @@ module Ordnung
         end
         query = { bool: { filter: filter } }
       end
-#      log.info "Db.#{__callee__} #{index.inspect} - #{hash.inspect}: #{query.inspect}"
+      log.info "Db.#{__callee__} #{index.inspect} - #{hash.inspect}: #{query.inspect}"
       result = @@client.search(
         index: index,
         body: {
@@ -102,7 +119,7 @@ module Ordnung
     # @return id
     #
     def self.create index, hash
-#      log.info "#{__callee__}: #{index} #{hash.inspect}"
+      log.info "#{__callee__}: #{index} #{hash.inspect}"
       result = @@client.create(
         index: index,
         body: hash

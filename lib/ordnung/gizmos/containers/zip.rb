@@ -1,14 +1,15 @@
 module Ordnung
+  # namespace for containers
   module Containers
-    class Zip < File
+    # ZIP archives
+    class Zip < Container
+      # extensions associated with +vmdk+ files
       def self.extensions
         ["zip", "ZIP"]
       end
+      # properties of +zip+ files (beyond what +Container+ already provides)
       def self.properties
         nil
-      end
-      def initialize name, parent=nil
-        super name, parent
       end
     end
   end

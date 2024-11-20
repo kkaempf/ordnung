@@ -1,16 +1,19 @@
 #
-# Tag
+# Tag namespace: `Ordnung::Tag`
 #
-# representing a tag
-# Tagging is two Indices
-# 1. Name of tag foo:bar:baz as Gizmo foo <-parent- Gizmo bar <-parent- Gizmo baz
-# 2. Tagging is a Gizmo -> Gizmo relationship
-#
-
 module Ordnung
+  #
+  # Tag
+  #
+  # representing a tag
+  # Tagging is two Indices
+  # 1. Name of tag foo:bar:baz as Gizmo foo <-parent- Gizmo bar <-parent- Gizmo baz
+  # 2. Tagging is a Gizmo -> Gizmo relationship
+  #
+
   class Tag < Gizmo
     #
-    # logger
+    # make logger available inside +Tag+
     #
     def self.log
       Ordnung::logger
@@ -21,10 +24,15 @@ module Ordnung
     def self.index
       @@index ||= "ordnung-tags"
     end
+    #
     # set index (for testing)
+    #
     def self.index= idx
       @@index = idx
     end
+    #
+    # ensure database initialization order
+    #
     def self.init
       super
       Ordnung::Db.create_index self.index
@@ -32,6 +40,10 @@ module Ordnung
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     #
     # Instance methods
+    #
+    
+    #
+    # create new Tag instance
     #
     def initialize name, id=nil
 #      Gizmo.log.info "Tag.new(#{name.inspect})"
@@ -53,14 +65,21 @@ module Ordnung
         @name = name['@name']
       end
     end
+    #
+    # @return +name+ of Tag
+    #
     def name
       @name
     end
+    #
+    # @return +id+ of Tag
+    #
     def id
       @id
     end
     #
-    # return Iterator over all Gizmos with this tag
+    # @return Iterator over all Gizmos with this tag
+    #
     def each_gizmo
     end
   end

@@ -1,12 +1,15 @@
-#
-# GPS track
-#
 module Ordnung
+  # container namespace for Blob
   module Blobs
-    class Gpx < File
+    #
+    # GPS track
+    #
+    class Gpx < Blob
+      # extensions associated with +gpx+ files
       def self.extensions
         ["gpx"]
       end
+      # properties of +gpx+ file (beyond what +Blob+ already provides)
       def self.properties
         nil
       end

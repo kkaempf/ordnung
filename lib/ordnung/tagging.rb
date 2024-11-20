@@ -1,16 +1,16 @@
-#
-# Tagging
-#
-# representing a tagging
-# Tagging is two Indices
-# 1. Name of tag foo:bar:baz as Gizmo foo <-parent- Gizmo bar <-parent- Gizmo baz
-# 2. Tagging is a Gizmo -> Gizmo relationship
-#
-
 module Ordnung
+  #
+  # Tagging
+  #
+  # representing a tagging
+  # Tagging is two Indices
+  # 1. Name of tag foo:bar:baz as Gizmo foo <-parent- Gizmo bar <-parent- Gizmo baz
+  # 2. Tagging is a Gizmo -> Gizmo relationship
+  #
+
   class Tagging
     #
-    # logger
+    # make logger accessible inside class
     #
     def self.log
       Ordnung::logger
@@ -21,16 +21,24 @@ module Ordnung
     def self.index
       @@index ||= "ordnung-taggings"
     end
+    #
     # set index (for testing)
+    #
     def self.index= idx
       @@index = idx
     end
+    #
+    # database properties (aka type mapping)
+    #
     def self.properties
       {
         tag:   { type: "keyword"}, # from tag
         gizmo: { type: "keyword"}  # to gizmo
       }
     end
+    #
+    # ensure startup order
+    #
     def self.init
       Ordnung::Db.properties = self.properties
       Ordnung::Db.create_index self.index
@@ -38,6 +46,11 @@ module Ordnung
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     #
     # Database methods
+    #
+    
+    #
+    # get index name associated with Tags
+    # @return +index+
     #
     def index
       Tagging.index
@@ -64,21 +77,37 @@ module Ordnung
     #
     # Instance methods
     #
+    
+    #
+    # create new Tag object, linking +tag+ with +gizmo+
+    #
     def initialize tag, gizmo
 #      Gizmo.log.info "Tagging.new(tag #{tag} <-> gizmo #{gizmo})"
       @tag_id = tag.id
       @gizmo_id = gizmo.id
       upsert
     end
+    #
+    # @return tag id
+    #
     def tag_id
       @tag_id
     end
+    #
+    # return self ?!
+    #
     def tag
       Ordnung::Tag.by_id @tag_id
     end
+    #
+    # @return +id+ of gizmo
+    #
     def gizmo_id
       @gizmo_id
     end
+    #
+    # @return +gizmo+
+    #
     def gizmo
       Ordnung::Gizmo.by_id @gizmo_id
     end

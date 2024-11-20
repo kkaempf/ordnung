@@ -2,6 +2,13 @@ require_relative 'name'
 require 'pathname'
 
 module Ordnung
+  #
+  # A Gizmo is the core item of Ordnung.
+  # It actually is a file in the filesystem.
+  # But as we're indexing all kinds of files (like pdfs, jpegs, ...)
+  # and `File` is too generic (and easily conflicts with Ruby's File)
+  # `Gizmo` appeared to be an appropriate name for this class.
+  #
   class Gizmo
     private
     #
@@ -17,11 +24,13 @@ module Ordnung
     #
     # Find implementation class for extension ext
     # ext:String
+    #
     def self.find_implementation_for ext
       @@extensions[ext]
     end
     #
     # add klass implementing extensions
+    #
     def self.add_extensions klass, extensions=nil
       return unless extensions # skip abstract implementation (i.e. Container)
       extensions.each do |ext|
@@ -35,6 +44,7 @@ module Ordnung
     end
     #
     # walk implementations and register their extensions
+    #
     def self.walk_gizmos dir, module_prefix
       deferred = []
       ::Dir.foreach(dir) do |x|
@@ -44,7 +54,7 @@ module Ordnung
           next
         when /^(.*)\.rb$/
           klass = $1.capitalize
-#          log.info "Gizmo #{path}(#{klass})"
+          log.info "Gizmo #{path}(#{klass})"
           require path
           gizmo = eval "#{module_prefix}::#{klass}"
           extensions = gizmo.extensions
@@ -66,7 +76,7 @@ module Ordnung
     #
     private
     def self.import_directory pathname, parent_id=nil
-#      log.info "Gizmo.import_directory #{pathname}"
+      log.info "Gizmo.import_directory #{pathname}"
       directory = @@extensions['dir']
       gizmo = nil
       ::Dir.foreach(pathname) do |node|
@@ -88,9 +98,12 @@ module Ordnung
       end
       gizmo
     end
+    #
+    # import a +File+ as +Gizmo+
+    #
     def self.import_file pathname, parent_id=nil
       return nil if pathname.to_s[-1,1] == '~'     # skip backups
-#      log.info "Gizmo.import file #{pathname}"
+      log.info "Gizmo.import file #{pathname}"
       dir, base = pathname.split
       # create parents
       parent_id = nil
@@ -113,7 +126,7 @@ module Ordnung
           break if elements.empty?
           extension = elements.join('.') # build extension from all remaining elements
           klass = @@extensions[extension]
-#          log.info "\t#{extension} -> #{klass.inspect} ?"
+          log.info "\textension >#{extension}< -> Class >#{klass.inspect}< ?"
           break if klass
           name << "."               # not found
           name << elements.shift    #  move one more element to name
@@ -129,6 +142,9 @@ module Ordnung
       gizmo
     end
     public
+    #
+    # Import anything (file or directory)
+    #
     def self.import path, parent_id=nil
       pathname = Pathname.new ::File.expand_path(path)
       if pathname.directory?
@@ -139,6 +155,7 @@ module Ordnung
     end
     #
     # detect extensionless gizmo
+    #
     def self.detect pathname
       exec = "file -b #{pathname.to_s.inspect}"
       file = `#{exec}`
@@ -168,6 +185,8 @@ module Ordnung
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     #
     # Database methods
+    #
+    # +index+ name of +Gizmo+ in database
     #
     def index
       Gizmo.index
@@ -238,6 +257,7 @@ module Ordnung
     attr_reader :nameId, :parentId, :addedAt
     #
     # load all Gizmo implementations
+    #
     def self.init
       Name.init
       Ordnung::Db.properties = self.properties
@@ -265,19 +285,31 @@ module Ordnung
       end
 #      Gizmo.log.info "\t ==> #{self}"
     end
+    #
+    # @return string representation of +Gizmo+
+    #
     def to_s
       "Gizmo(#{self.name}->#{@parentId})"
     end
+    #
+    # equality operator
+    #
     def == gizmo
       self.class == gizmo.class &&
         @nameId == gizmo.nameId &&
         @parentId == gizmo.parentId &&
         @addedAt == gizmo.addedAt
     end
+    #
+    # @return name of Gizmo as string
+    #
     def name
       raise "No name" if @nameId.nil?
       Name.by_id(@nameId)
     end
+    #
+    # @return id of Gizmo
+    #
     def id
       @id
     end
@@ -301,28 +333,33 @@ module Ordnung
     #
     # iterate over each duplicate
     # @return Iterator
+    #
     def each
     end
     #
     # iterate over each assigned tag
     # @return Iterator
+    #
     def each_tag
     end
     #
     # Gizmo#has? tag
     # @return Boolean
+    #
     def has? tag
       tag.to? @id
     end
     #
     # Gizmo#tag! tag
     # add tag to gizmo
+    #
     def tag tg
       tg.tag_gizmo @id
     end
     #
     # Gizmo#untag! tag
     # remove tag from gizmo
+    #
     def untag tag
       tag.untag_gizmo @id
     end

@@ -1,16 +1,18 @@
-#
-# JPEG pictures
-#
 require 'exifr/jpeg'
 
 module Ordnung
+  # namespace for anything visual (pictures, videos, ...)
   module Visuals
+    #
+    # JPEG pictures
+    #
     class Jpeg < File
+      # extensions associated with +jpeg+ picture files
       def self.extensions
         ["jpg", "JPG", "jpeg", "JPEG"]
       end
       #
-      # Database type mapping
+      # properties of +jpeg+ files (beyond what +File+ already provides)
       #
       def self.properties
         {
