@@ -7,6 +7,20 @@ module Ordnung
   #
   class Name
     #
+    # make log accessible
+    #
+    def log
+      Ordnung::logger
+    end
+    #
+    # pass the database instance to the Name class
+    #
+    def self.db= db
+      @@db = db
+      db.create_index self.index, self.properties
+    end
+
+    #
     # Provide a { name: <string> } hash, ready for database consumption
     #
     def self.to_hash name
@@ -33,36 +47,67 @@ module Ordnung
       }
     end
     #
-    # ensure startup order
+    # retrieve +Name+ from id
+    # @return +Name+ or nil
     #
-    def self.init
-      Ordnung::Db.properties = self.properties
-      Ordnung::Db.create_index self.index
-    end
-    #
-    # search name by id
-    # @return name
-    #
-    def self.by_id id
+    def self.from_id id
       return nil if id.nil?
-      Ordnung::Db.by_id(index, id)['name'] rescue nil
+      begin
+        name = @@db.by_id(index, id)['name']
+        Name.new(name, id)
+      rescue
+        nil
+      end
     end
     #
-    # search by name
+    # search id by name
     # @return id
     #
-    def self.by_name name
+    def self.id_by_name name
       return nil if name.nil?
-      Ordnung::Db.by_hash(index, self.to_hash(name)) rescue nil
+      begin
+        id = @@db.by_hash(index, self.to_hash(name))
+      rescue
+        nil
+      end
     end
+
     #
-    # find or insert a name
-    # @return id
+    # test +Name+ equality
     #
-    def self.finsert name
-      id = self.by_name name
-      return id if id
-      Ordnung::Db.create(index, self.to_hash(name))
+    def == other
+      @name == other.name && @id == other.id
+    end
+
+    #
+    # +String+ representation of +Name+
+    #
+    def to_s
+      "Name(#{@name.inspect}@#{@id.inspect})"
+    end
+
+    #
+    # make id and name accessible
+    #
+    attr_reader :id, :name
+    #
+    # create new +Name+ (or load from db)
+    #
+    #
+    def initialize name, id=nil
+      log.info "Name.new(#{name.inspect}, #{id.inspect})"
+      raise "Name cannot be nil" if name.nil?
+      @name = name
+      if id
+        @id = id
+      else
+        id = Name.id_by_name(name)
+        if id
+          @id = id
+        else
+          @id = @@db.create(Name.index, Name.to_hash(@name))
+        end
+      end
     end
   end
 end

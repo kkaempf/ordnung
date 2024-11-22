@@ -16,3 +16,7 @@ task :default => [:clean_logs, :test]
 task :doc do
   system "rdoc -o rdoc lib/**"
 end
+
+task :"doc-coverage" do
+  system "rdoc -C lib/**"
+end

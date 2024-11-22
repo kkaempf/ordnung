@@ -13,61 +13,62 @@ module Ordnung
   #
   class Db
     #
-    # Db.log makes the 'upstream' log API available inside Db
+    # make log accessible
     #
-    def self.log
+    def log
       Ordnung::logger
-    end
-    #
-    # Create a new database backend instance
-    #
-    def self.init
-      @@client = OpenSearch::Client.new(
-        url: "http://localhost:9200",
-        retry_on_failure: 5,
-        request_timeout: 10,
-        log: false
-      )
-    end
-    #
-    # (re-)set +properties+
-    #
-    # properties is a map of { name: type } pairs declaring the +type+ of property +name+
-    #
-    def self.properties= properties
-      log.info "Db.properties = #{properties.inspect}"
-      @@properties = properties
     end
     #
     # collect properties
     #
-    def self.collect_properties properties
-      log.info "Db.collect_properties #{properties.inspect}"
-      @@properties.merge!(properties) if properties
+    def collect_properties properties
+      log.info "    Db.collect_properties #{properties.inspect}"
+      @properties.merge!(properties) if properties
     end
     #
     # set index with collected properties
     #
-    def self.create_index index
-      if @@client.indices.exists?(index: index)
-        current_mapping = @@client.indices.get_mapping(index: index)
-        log.info "Db.get_mapping(#{index}): #{current_mapping.inspect}"
+    def create_index index, properties=nil
+      log.info "    Db.create_index(#{index}, #{properties.inspect})"
+      if @client.indices.exists?(index: index)
+        current_mapping = @client.indices.get_mapping(index: index)
+        log.info "        Db.get_mapping(#{index}): #{current_mapping.inspect}"
         current_properties = current_mapping[index]['mappings']['properties'] rescue nil
-        log.info "Db.current_properties(#{index}): #{current_properties.inspect}"
-        log.info "Db.put_mapping(#{index}): #{@@properties.inspect}"
-        @@client.indices.put_mapping(
+        log.info "        Db.current_properties(#{index}): #{current_properties.inspect}"
+        log.info "        Db.put_mapping(#{index}): #{properties.inspect}"
+        equal_properties = true
+        properties.each do |k,v|
+          cv = current_properties[k] || current_properties[k.to_s] # get current value
+          if v
+            type = v[:type] || v["type"]
+            ctype = cv[:type] || cv["type"]
+            if ctype == type
+              next
+            else
+              log.info "            #{k}: #{ctype.inspect} != #{type.inspect}"
+              equal_properties = false
+              break
+            end
+          else
+            log.info "        Key #{k.inspect} not found in current properties"
+            equal_properties = false
+            break
+          end
+        end # properties.each
+        return if equal_properties
+        @client.indices.put_mapping(
           index: index,
           body: {
-            properties: @@properties
+            properties: properties
           }
         )
       else
-        log.info "Db.create_index(#{index})"
-        @@client.indices.create(
+        # database index does not exist
+        @client.indices.create(
           index: index,
           body: {
             mappings: {
-              properties: @@properties
+              properties: properties
             }
           }
         )
@@ -76,16 +77,16 @@ module Ordnung
     #
     # delete index
     #
-    def self.delete_index index
-      @@client.indices.delete(index: index) if @@client.indices.exists?(index: index)
+    def delete_index index
+      @client.indices.delete(index: index) if @client.indices.exists?(index: index)
     end
     #
     # get record from index by id
     # @return hash
     #
-    def self.by_id index, id
-      result = @@client.get(index: index, id: id)
-      log.info "Db.#{__callee__} #{index.inspect} - #{id.inspect}"
+    def by_id index, id
+      result = @client.get(index: index, id: id)
+      log.info "    Db.#{__callee__} #{index.inspect} - #{id.inspect}"
       return nil if result.nil?
       result['_source']
     end
@@ -93,7 +94,7 @@ module Ordnung
     # get record from index by hash
     # @return id
     #
-    def self.by_hash index, hash
+    def by_hash index, hash
       return nil if hash.empty?
       if hash.size == 1
         query = { match: hash }
@@ -105,8 +106,8 @@ module Ordnung
         end
         query = { bool: { filter: filter } }
       end
-      log.info "Db.#{__callee__} #{index.inspect} - #{hash.inspect}: #{query.inspect}"
-      result = @@client.search(
+      log.info "    Db.#{__callee__} #{index.inspect} - #{hash.inspect}: #{query.inspect}"
+      result = @client.search(
         index: index,
         body: {
           query: query
@@ -118,14 +119,33 @@ module Ordnung
     # create record in index, store hash
     # @return id
     #
-    def self.create index, hash
-      log.info "#{__callee__}: #{index} #{hash.inspect}"
-      result = @@client.create(
+    def create index, hash
+      log.info "    Db.#{__callee__}: #{index} #{hash.inspect}"
+      result = @client.create(
         index: index,
         body: hash
       )
-      @@client.indices.refresh(index: index)
+      @client.indices.refresh(index: index)
       result['_id']
     end
+    
+    #
+    # Create a new database backend instance
+    #
+    def initialize
+      begin
+        @client = OpenSearch::Client.new(
+          url: "http://localhost:9200",
+          retry_on_failure: 5,
+          request_timeout: 10,
+          log: false
+        )
+        @client.cluster.health
+      rescue Exception => e
+        log.error "OpenSearch database not running: #{e}"
+        exit 1
+      end
+    end
+
   end
 end
