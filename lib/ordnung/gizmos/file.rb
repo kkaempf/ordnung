@@ -9,6 +9,13 @@ module Ordnung
   #
   class File < Gizmo
     #
+    # fixme
+    #
+    def self.init
+      @@index = 'ordnung-files'
+      Ordnung::Db.create_index @@index
+    end
+    #
     # no associated extensions
     # @return nil
     #
@@ -34,15 +41,14 @@ module Ordnung
     #
     # create instance of File
     #
-    def initialize name, parent_id=nil
+    def initialize pathname, parent_id=nil
       super
-#      Gizmo.log.info "File.new(#{name.class}:#{name})"
-      case name
+      Gizmo.log.info "File.new(#{pathname.class}:#{name})"
+      case pathname
       when String, Pathname
-        path = self.path
-        @hash = `sha256sum -b #{path}`.split(' ')[0]
-        @size = ::File.size(path)
-        @time = ::File.mtime(path).floor
+        @hash = `sha256sum -b #{pathname}`.split(' ')[0]
+        @size = ::File.size(pathname)
+        @time = ::File.mtime(pathname).floor
       when Hash
         @hash = name['@hash']
         @size = name['@size']
@@ -63,6 +69,39 @@ module Ordnung
     #
     def to_s
       "#{self.path} #{@size} #{@time} #{@hash}"
+    end
+    #
+    # iterate over each file
+    # @return Iterator
+    #
+    def each
+    end
+    #
+    # iterate over each assigned tag
+    # @return Iterator
+    #
+    def each_tag
+    end
+    #
+    # File#has? tag
+    # @return Boolean
+    #
+    def has? tag
+      tag.to? @id
+    end
+    #
+    # File#tag! tag
+    # add tag to file
+    #
+    def tag tg
+      tg.tag @id
+    end
+    #
+    # File#untag! tag
+    # remove tag from file
+    #
+    def untag tag
+      tag.untag @id
     end
   end
 end

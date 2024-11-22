@@ -5,17 +5,11 @@ module Ordnung
   # representing a tagging
   # Tagging is two Indices
   # 1. Name of +Tag+ foo:bar:baz as Gizmo foo <-parent- Gizmo bar <-parent- Gizmo baz
-  # 2. +Tagging+ (here) is a Gizmo -> Gizmo relationship
+  # 2. +Tagging+ (here) is a Gizmo (Tag) -> Gizmo (File) relationship
   #
   # see also +Tag+
   #
   class Tagging
-    #
-    # make logger accessible inside class
-    #
-    def self.log
-      Ordnung::logger
-    end
     #
     # Database index name
     #
@@ -29,12 +23,12 @@ module Ordnung
       @@index = idx
     end
     #
-    # properties of a tagging, linking a +Tag+ with a +Gizmo+ (representing an on-disk file)
+    # properties of a tagging, linking a +Tag+ with a +File+ (representing an on-disk file)
     #
     def self.properties
       {
-        tag:   { type: "keyword"}, # from tag
-        gizmo: { type: "keyword"}  # to gizmo
+        tag:  { type: "keyword"}, # from tag
+        file: { type: "keyword"}  # to file
       }
     end
     #
@@ -50,6 +44,12 @@ module Ordnung
     #
     
     #
+    # make logger accessible inside class
+    #
+    def log
+      Ordnung::logger
+    end
+    #
     # get index name associated with Tags
     # @return +index+
     #
@@ -61,7 +61,7 @@ module Ordnung
     # Convert instance variables to Hash
     #
     def to_hash
-      { tag_id: @tag_id, gizmo_id: @gizmo_id }
+      { tag_id: @tag_id, file_id: @file_id }
     end
     #
     # update or insert
@@ -70,7 +70,7 @@ module Ordnung
     def upsert
       hash = to_hash
       @id = Ordnung::Db.by_hash index, hash
-#      Gizmo.log.info "upsert #{hash.inspect} -> #{@id}"
+#     log.info "upsert #{hash.inspect} -> #{@id}"
       return if @id
       @id = Ordnung::Db.create index, hash
     end
@@ -80,12 +80,12 @@ module Ordnung
     #
     
     #
-    # create new Tag object, linking +tag+ with +gizmo+
+    # create new Tag object, linking +tag+ with +file+
     #
-    def initialize tag, gizmo
-#      Gizmo.log.info "Tagging.new(tag #{tag} <-> gizmo #{gizmo})"
+    def initialize tag, file
+#     log.info "Tagging.new(tag #{tag} <-> file #{file})"
       @tag_id = tag.id
-      @gizmo_id = gizmo.id
+      @file_id = file.id
       upsert
     end
     #
@@ -101,16 +101,16 @@ module Ordnung
       Ordnung::Tag.by_id @tag_id
     end
     #
-    # @return +id+ of gizmo
+    # @return +id+ of file
     #
-    def gizmo_id
-      @gizmo_id
+    def file_id
+      @file_id
     end
     #
-    # @return +gizmo+
+    # @return +file+
     #
-    def gizmo
-      Ordnung::Gizmo.by_id @gizmo_id
+    def file
+      Ordnung::File.by_id @file_id
     end
   end
 end

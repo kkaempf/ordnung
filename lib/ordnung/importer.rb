@@ -1,18 +1,25 @@
 require_relative "db"
-require_relative "gizmo"
+require_relative "name"
 require_relative "tag"
+require_relative "gizmo"
 require_relative "tagging"
 
 module Ordnung
   #
   # Main instance providing an API to import, tag, and find files
   #
-  class Ordnung
+  class Importer
     #
-    # Make toplevel +Logger+ accessible
+    # make log accessible
     #
-    def self.logger
-      ::Ordnung::logger
+    def self.log
+      Ordnung::logger
+    end
+    #
+    # make log accessible
+    #
+    def log
+      Ordnung::logger
     end
     #
     # Hash of extension:String => implementation:Class
@@ -56,11 +63,13 @@ module Ordnung
           next
         when /^(.*)\.rb$/
           klass = $1.capitalize
-          log.info "Found #{path} implementing #{klass}"
+#          log.info "Found #{path} implementing #{klass}"
           require path
           gizmo = eval "#{module_prefix}::#{klass}"
           add_extensions gizmo
           Ordnung::Db.collect_properties gizmo.properties rescue nil
+        when /^(.*)\.rb~$/
+          # silently skip editor backups
         else
           if ::File.directory?(path)
             deferred << [path, "#{module_prefix}::#{x.capitalize}"]
@@ -75,11 +84,12 @@ module Ordnung
     end
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     #
-    # recursively import path
+    # recursively import pathname
+    # @return +Gizmo+
     #
     private
     def import_directory pathname, parent_id=nil
-      log.info "Ordnung.import_directory #{pathname}"
+      log.info "Importer.import_directory #{pathname}"
       directory = @@extensions['dir']
       gizmo = nil
       ::Dir.foreach(pathname) do |node|
@@ -102,24 +112,46 @@ module Ordnung
       gizmo
     end
     #
-    # import a +File+ as +Gizmo+
+    # import a +Pathname+ as +Gizmo+
+    # @return +Gizmo+
     #
-    def import_file pathname, parent_id=nil
+    def import_file pathname, parent_id=nil      
+      case pathname
+      when Pathname, File
+        # do nothing
+      else
+        pathname = Pathname.new(pathname)
+      end
       return nil if pathname.to_s[-1,1] == '~'     # skip backups
-      log.info "Gizmo.import file #{pathname}"
+      unless ::File.readable?(pathname)
+        log.error "File #{pathname.inspect} is not readable"
+        return nil
+      end
+      #
+      # import from Pathname
+      #
+      log.info "Importer.import file #{pathname.inspect}"
       dir, base = pathname.split
+      #
       # create parents
+      #
       parent_id = nil
-      dir.to_s.split(::File::SEPARATOR).each do |node|
-        next if node == ''
-        gizmo = Gizmo.new(node, parent_id)
-        gizmo.upsert
-        Tag.new(node)
+      elements = dir.to_s.split('/')
+      log.info "  elements #{elements.inspect}"
+      while name = elements.shift
+        log.info "  name #{name.inspect}, elements #{elements.inspect}"
+        # skip leading and double slashes
+        next if name.empty?
+        gizmo = Gizmo.new(name, parent_id)
+        Tag.new(name)
         parent_id = gizmo.id
       end
+      #
+      # find largest matching extension
+      #
       elements = base.to_s.split('.')
       if elements.size == 1 # no extension
-        klass = Gizmo.detect pathname
+        klass = detect pathname
       else
         # find largest extension
         # for a.b.c.d
@@ -130,7 +162,7 @@ module Ordnung
           extension = elements.join('.') # build extension from all remaining elements
           klass = @@extensions[extension]
           log.info "\textension >#{extension}< -> Class >#{klass.inspect}< ?"
-          break if klass
+          break if klass # found matching extension !
           name << "."               # not found
           name << elements.shift    #  move one more element to name
         end
@@ -139,10 +171,8 @@ module Ordnung
           klass = Ordnung::Blob
         end
       end
-      log.info "#{__callee__}: #{klass}.new(#{base.inspect}, #{parent_id})"
-      gizmo = klass.new(base, parent_id)
-      gizmo.upsert
-      gizmo
+      log.info "#{__callee__}: #{klass}.new(#{pathname.inspect}, #{parent_id})"
+      klass.new(pathname, parent_id)
     end
     public
     #
@@ -185,11 +215,11 @@ module Ordnung
       Name.db = @db
       Tag.db = @db
 #      Tagging.db = @db
-#      Gizmo.db = @db
+      Gizmo.db = @db
       #
       # load all Gizmo implementations into the Ordnung namespace
       #
-#      walk_gizmos ::File.join(::File.dirname(__FILE__), "gizmos"), "Ordnung"
+      walk_gizmos ::File.join(::File.dirname(__FILE__), "gizmos"), "Ordnung"
     end
 
   end

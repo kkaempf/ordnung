@@ -19,6 +19,9 @@ module Ordnung
     def self.log
       Ordnung::logger
     end
+    #
+    # make log accessible
+    #
     def log
       Ordnung::logger
     end

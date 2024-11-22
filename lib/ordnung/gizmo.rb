@@ -6,175 +6,11 @@ module Ordnung
   # A Gizmo is the core item of Ordnung.
   #
   # It is a string representation in the database with an associated database id for quick access
+  # and a parent for implementing a file system or tag hierachy
   #
   #
   class Gizmo
     private
-    #
-    # Hash of extension:String => implementation:Class
-    #   daisy chain            => extension:String
-    #
-    @@extensions = Hash.new
-    #
-    # logger
-    #
-    def self.log
-      Ordnung::logger
-    end
-    #
-    # Find implementation class for extension ext
-    # ext:String
-    #
-    def self.find_implementation_for ext
-      @@extensions[ext]
-    end
-    #
-    # add klass implementing extensions
-    #
-    def self.add_extensions klass
-      extensions = klass.extensions
-      return unless extensions # skip abstract implementation (i.e. Container)
-      extensions.each do |ext|
-        existing_klass = self.find_implementation_for ext
-        if existing_klass
-          next if existing_klass == klass
-          raise "#{klass} claims extension #{ext.inspect} already claimed by #{existing_klass}"
-        end
-        @@extensions[ext] = klass
-      end
-    end
-    #
-    # walk implementations and register their extensions
-    #
-    def self.walk_gizmos dir, module_prefix
-      deferred = []
-      #
-      # walk over the implemetation files
-      #
-      ::Dir.foreach(dir) do |x|
-        path = ::File.join(dir, x)
-        case x
-        when ".", ".."
-          next
-        when /^(.*)\.rb$/
-          klass = $1.capitalize
-          log.info "Found #{path} implementing #{klass}"
-          require path
-          gizmo = eval "#{module_prefix}::#{klass}"
-          add_extensions gizmo
-          Ordnung::Db.collect_properties gizmo.properties rescue nil
-        else
-          if ::File.directory?(path)
-            deferred << [path, "#{module_prefix}::#{x.capitalize}"]
-          else
-            log.info "Skipping unknown implementation file #{path} (not .rb or directory)"
-          end
-        end
-      end
-      deferred.each do |path, klass|
-        walk_gizmos path, klass
-      end
-    end
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    #
-    # recursively import path
-    #
-    private
-    def self.import_directory pathname, parent_id=nil
-      log.info "Gizmo.import_directory #{pathname}"
-      directory = @@extensions['dir']
-      gizmo = nil
-      ::Dir.foreach(pathname) do |node|
-        case node
-        when ".", ".."
-          next
-        when "__MACOSX", ".DS_Store"    # Mac stuff
-          next
-        when ".Trash-1000"              # Trashcan
-          next
-        when ".directory", ".updated"   # Helper stuff
-          next
-        when ".git"                     # git
-          next
-        else
-          path = ::File.join(pathname, node)
-          gizmo = self.import path
-        end
-      end
-      gizmo
-    end
-    #
-    # import a +File+ as +Gizmo+
-    #
-    def self.import_file pathname, parent_id=nil
-      return nil if pathname.to_s[-1,1] == '~'     # skip backups
-      log.info "Gizmo.import file #{pathname}"
-      dir, base = pathname.split
-      # create parents
-      parent_id = nil
-      dir.to_s.split(::File::SEPARATOR).each do |node|
-        next if node == ''
-        gizmo = Gizmo.new(node, parent_id)
-        gizmo.upsert
-        Tag.new(node)
-        parent_id = gizmo.id
-      end
-      elements = base.to_s.split('.')
-      if elements.size == 1 # no extension
-        klass = Gizmo.detect pathname
-      else
-        # find largest extension
-        # for a.b.c.d
-        #  try a - b.c.d, a.b - c.d, a.b.c - d
-        name = elements.shift
-        loop do
-          break if elements.empty?
-          extension = elements.join('.') # build extension from all remaining elements
-          klass = @@extensions[extension]
-          log.info "\textension >#{extension}< -> Class >#{klass.inspect}< ?"
-          break if klass
-          name << "."               # not found
-          name << elements.shift    #  move one more element to name
-        end
-        if klass.nil?
-          log.warn "Unimplemented #{base}(#{dir})"
-          klass = Ordnung::Blob
-        end
-      end
-      log.info "#{__callee__}: #{klass}.new(#{base.inspect}, #{parent_id})"
-      gizmo = klass.new(base, parent_id)
-      gizmo.upsert
-      gizmo
-    end
-    public
-    #
-    # Import anything (file or directory)
-    #
-    def self.import path, parent_id=nil
-      pathname = Pathname.new ::File.expand_path(path)
-      if pathname.directory?
-        self.import_directory pathname, parent_id
-      else
-        self.import_file pathname, parent_id
-      end
-    end
-    #
-    # detect extensionless gizmo
-    #
-    def self.detect pathname
-      exec = "file -b #{pathname.to_s.inspect}"
-      file = `#{exec}`
-      klass = nil
-      case file.chomp
-      when "ASCII text", "Unicode text, UTF-8 text", "ASCII text, with no line terminators"
-        klass = @@extensions['txt']
-      when "Ruby script, ASCII text"
-        klass = @@extensions['rb']
-      else
-        klass = Ordnung::Blob
-      end
-      klass
-    end
     #
     # find Gizmo id by pattern
     # @return id
@@ -187,7 +23,20 @@ module Ordnung
         nil
       end
     end
+    #
+    # make log accessible
+    #
+    def self.log
+      Ordnung::logger
+    end
+    #
+    # make log accessible
+    #
+    def log
+      Ordnung::logger
+    end
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    public
     #
     # Database methods
     #
@@ -195,6 +44,34 @@ module Ordnung
     #
     def index
       Gizmo.index
+    end
+    #
+    # connect Gizmo to Database
+    #
+    def self.db= db
+      @@db = db
+      db.create_index self.index, self.properties
+    end
+    #
+    # Database index name
+    #
+    def self.index
+      @@index
+    end
+    # set index (for testing)
+    def self.index= idx
+      @@index = idx
+    end
+    #
+    # Database type mapping
+    #
+    def self.properties
+      {
+        :class =>     { type: 'keyword' },
+        :@nameId =>   { type: 'keyword' },
+        :@parentId => { type: 'keyword' },
+        :@addedAt =>  { type: 'date', format: 'yyyy-MM-dd HH:mm:ss Z' } # 2023-11-08 16:03:40 +0100
+      }
     end
     #
     #
@@ -237,59 +114,7 @@ module Ordnung
       end
       gizmo
     end
-    #
-    # Database index name
-    #
-    def self.index
-      @@index ||= "ordnung-gizmos"
-    end
-    # set index (for testing)
-    def self.index= idx
-      @@index = idx
-    end
-    #
-    # Database type mapping
-    #
-    def self.properties
-      {
-        :class =>     { type: 'keyword' },
-        :@nameId =>   { type: 'keyword' },
-        :@parentId => { type: 'keyword' },
-        :@addedAt =>  { type: 'date', format: 'yyyy-MM-dd HH:mm:ss Z' } # 2023-11-08 16:03:40 +0100
-      }
-    end
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    attr_reader :nameId, :parentId, :addedAt
-    #
-    # load all Gizmo implementations
-    #
-    def self.init
-      Name.init
-      Ordnung::Db.properties = self.properties
-      self.walk_gizmos ::File.join(::File.dirname(__FILE__), "gizmos"), "Ordnung"
-      Ordnung::Db.create_index self.index
-    end
-    #
-    # Gizmo#new
-    #
-    def initialize name, parent_id=nil
-#      Gizmo.log.info "Gizmo.new(#{name.class}:#{name})"
-      case name
-      when String, Pathname
-#        Gizmo.log.info "Gizmo.new(#{parent_id} / #{name.inspect})"
-        @nameId = Name.finsert(name)
-        @parentId = parent_id
-      when Hash
-#        Gizmo.log.info "Gizmo.new(#{name.inspect}) -> #{parent_id}"
-        @id = parent_id
-        @parentId = name['@parentId']
-        @nameId = name['@nameId']
-        @addedAt = Time.new(name['@addedAt'])
-      else
-        raise "Can't create Gizmo from #{name.inspect}"
-      end
-#      Gizmo.log.info "\t ==> #{self}"
-    end
     #
     # @return string representation of +Gizmo+
     #
@@ -323,9 +148,9 @@ module Ordnung
     # (re-)create full path  /dir <-parent- dir <-parent- ...
     #
     def path
-      if @parentId
+      if @parent_id
         begin
-          ppath = Gizmo.by_id(@parentId).path
+          ppath = Gizmo.by_id(@parent_id).path
           ::File.join(ppath, name)
         rescue
           Gizmo.log.info "*** Gizmo.path(#{ppath.inspect} / #{name.inspect})"
@@ -335,38 +160,27 @@ module Ordnung
         "/#{name}"
       end
     end
+    attr_reader :name, :parent_id, :added_at
     #
-    # iterate over each duplicate
-    # @return Iterator
+    # Gizmo#new
     #
-    def each
-    end
-    #
-    # iterate over each assigned tag
-    # @return Iterator
-    #
-    def each_tag
-    end
-    #
-    # Gizmo#has? tag
-    # @return Boolean
-    #
-    def has? tag
-      tag.to? @id
-    end
-    #
-    # Gizmo#tag! tag
-    # add tag to gizmo
-    #
-    def tag tg
-      tg.tag_gizmo @id
-    end
-    #
-    # Gizmo#untag! tag
-    # remove tag from gizmo
-    #
-    def untag tag
-      tag.untag_gizmo @id
+    def initialize name, parent_id=nil
+      log.info "Gizmo.new(#{name.class}:#{name})"
+      case name
+      when String, Pathname
+#        Gizmo.log.info "Gizmo.new(#{parent_id} / #{name.inspect})"
+        @name = Name.new(name)
+        @parent_id = parent_id
+      when Hash
+#        Gizmo.log.info "Gizmo.new(#{name.inspect}) -> #{parent_id}"
+        @id = parent_id
+        @parent_id = name['parent_id']
+        @name = Name.from_id(name['name_id'])
+        @added_at = Time.new(name['added_at'])
+      else
+        raise "Can't create Gizmo from #{name.inspect}"
+      end
+#      Gizmo.log.info "\t ==> #{self}"
     end
   end
 end
