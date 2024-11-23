@@ -84,14 +84,31 @@ module Ordnung
     end
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     #
-    # recursively import pathname
+    # detect extensionless gizmo
+    #
+    def detect pathname
+      exec = "file -b #{pathname.to_s.inspect}"
+      file = `#{exec}`
+      klass = nil
+      case file.chomp
+      when "ASCII text", "Unicode text, UTF-8 text", "ASCII text, with no line terminators"
+        klass = @@extensions['txt']
+      when "Ruby script, ASCII text"
+        klass = @@extensions['rb']
+      else
+        klass = Ordnung::Blob
+      end
+      klass
+    end
+    #
+    # recursively import pathname as directory
     # @return +Gizmo+
     #
     private
-    def import_directory pathname, parent_id=nil
+    def import_directory pathname, depth, parent_id=nil
       log.info "Importer.import_directory #{pathname}"
-      directory = @@extensions['dir']
-      gizmo = nil
+      directory = Containers::Directory.new(pathname, parent_id)
+      return directory if depth == 0
       ::Dir.foreach(pathname) do |node|
         case node
         when ".", ".."
@@ -104,18 +121,20 @@ module Ordnung
           next
         when ".git"                     # git
           next
+        when "@eaDir", ".@__thumb"      # Synology/Qnap
+          next
         else
           path = ::File.join(pathname, node)
-          gizmo = import path
+          import path, depth-1, directory
         end
       end
-      gizmo
+      directory
     end
     #
     # import a +Pathname+ as +Gizmo+
     # @return +Gizmo+
     #
-    def import_file pathname, parent_id=nil      
+    def import_file pathname, depth, parent_id=nil
       case pathname
       when Pathname, File
         # do nothing
@@ -174,36 +193,27 @@ module Ordnung
       log.info "#{__callee__}: #{klass}.new(#{pathname.inspect}, #{parent_id})"
       klass.new(pathname, parent_id)
     end
+    #
+    # - - - - - - - - - - - - - - - - - - - - - - - -
+    #
     public
     #
     # Import anything (file or directory)
     #
-    def import path, parent_id=nil
+    # path: filesystem path
+    # depth: directory depth to import
+    #        0: just directory as container placeholder
+    #        1: just directory and its direct contents (subdirs only a depth 0)
+    #       -1: recursive import
+    #
+    def import path, depth=0, parent_id=nil
       pathname = Pathname.new ::File.expand_path(path)
       if pathname.directory?
-        import_directory pathname, parent_id
+        import_directory pathname, depth, parent_id
       else
-        import_file pathname, parent_id
+        import_file pathname, depth, parent_id
       end
     end
-    #
-    # detect extensionless gizmo
-    #
-    def detect pathname
-      exec = "file -b #{pathname.to_s.inspect}"
-      file = `#{exec}`
-      klass = nil
-      case file.chomp
-      when "ASCII text", "Unicode text, UTF-8 text", "ASCII text, with no line terminators"
-        klass = @@extensions['txt']
-      when "Ruby script, ASCII text"
-        klass = @@extensions['rb']
-      else
-        klass = Ordnung::Blob
-      end
-      klass
-    end
-
     #
     # make database instance accessible
     #

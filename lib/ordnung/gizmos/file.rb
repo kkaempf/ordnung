@@ -1,3 +1,5 @@
+require_relative 'containers/directory'
+
 module Ordnung
   #
   # File represents an actual file on disk, which has
@@ -42,7 +44,7 @@ module Ordnung
     # create instance of File
     #
     def initialize pathname, parent_id=nil
-      super
+      super pathname, parent_id
       Gizmo.log.info "File.new(#{pathname.class}:#{name})"
       case pathname
       when String, Pathname

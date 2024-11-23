@@ -23,8 +23,8 @@ module Ordnung
     #
     # return new instance of +Container+
     #
-    def initialize path
-      super path
+    def initialize path, parent
+      super path, parent
     end
     #
     # iterate over each gizmo in Container
