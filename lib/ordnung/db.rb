@@ -143,7 +143,6 @@ module Ordnung
         @client.cluster.health
       rescue Exception => e
         log.error "OpenSearch database not running: #{e}"
-        exit 1
       end
     end
 
