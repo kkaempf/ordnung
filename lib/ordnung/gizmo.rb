@@ -68,9 +68,9 @@ module Ordnung
     def self.properties
       {
         :class =>     { type: 'keyword' },
-        :@nameId =>   { type: 'keyword' },
-        :@parentId => { type: 'keyword' },
-        :@addedAt =>  { type: 'date', format: 'yyyy-MM-dd HH:mm:ss Z' } # 2023-11-08 16:03:40 +0100
+        :name_id =>   { type: 'keyword' },
+        :parent_id => { type: 'keyword' },
+        :added_at =>  { type: 'date', format: 'yyyy-MM-dd HH:mm:ss Z' } # 2023-11-08 16:03:40 +0100
       }
     end
     #
@@ -78,10 +78,7 @@ module Ordnung
     # Convert instance variables to Hash
     #
     def to_hash
-      hash = Hash.new
-      instance_variables.each do |var|
-        hash[var] = instance_variable_get var
-      end
+      hash = { name_id: @name_id, parent_id: @parent_id, added_at: @added_at }
 #      Gizmo.log.info "#{self}.to_hash #{hash.inspect}"
       hash
     end
@@ -91,12 +88,12 @@ module Ordnung
     #
     def upsert
       hash = to_hash
-      @id = Ordnung::Db.by_hash index, hash
+      @id = @@db.by_hash index, hash
 #      Gizmo.log.info "upsert #{hash.inspect} -> #{@id}"
       return if @id
-      hash[:@addedAt] = @addedAt = Time.now.floor
+      hash[:added_at] = @added_at = Time.now.floor
       hash[:class] = self.class
-      @id = Ordnung::Db.create index, hash
+      @id = @@db.create index, hash
     end
     #
     # Gizmo by id
@@ -104,7 +101,7 @@ module Ordnung
     #
     def self.by_id id
       raise "No id given" if id.nil?
-      hash = Ordnung::Db.by_id(self.index, id)
+      hash = @@db.by_id(self.index, id)
 #      log.info "Gizmo.by_id #{id} -> #{hash.inspect}"
       gizmo = nil
       if hash
@@ -126,16 +123,16 @@ module Ordnung
     #
     def == gizmo
       self.class == gizmo.class &&
-        @nameId == gizmo.nameId &&
-        @parentId == gizmo.parentId &&
-        @addedAt == gizmo.addedAt
+        @name_id == gizmo.name_id &&
+        @parent_id == gizmo.parent_id &&
+        @added_id == gizmo.added_at
     end
     #
     # @return name of Gizmo as string
     #
     def name
-      raise "No name" if @nameId.nil?
-      Name.by_id(@nameId)
+      raise "No name" if @name_id.nil?
+      Name.from_id(@name_id)
     end
     #
     # @return id of Gizmo
@@ -160,7 +157,7 @@ module Ordnung
         "/#{name}"
       end
     end
-    attr_reader :name, :parent_id, :added_at
+    attr_reader :name_id, :parent_id, :added_at
     #
     # Gizmo#new
     #
@@ -169,13 +166,14 @@ module Ordnung
       case name
       when String, Pathname
 #        Gizmo.log.info "Gizmo.new(#{parent_id} / #{name.inspect})"
-        @name = Name.new(name)
+        @name_id = Name.new(name).id
         @parent_id = parent_id
+        upsert
       when Hash
 #        Gizmo.log.info "Gizmo.new(#{name.inspect}) -> #{parent_id}"
         @id = parent_id
         @parent_id = name['parent_id']
-        @name = Name.from_id(name['name_id'])
+        @name_id = name['name_id']
         @added_at = Time.new(name['added_at'])
       else
         raise "Can't create Gizmo from #{name.inspect}"
