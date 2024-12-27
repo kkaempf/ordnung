@@ -157,6 +157,8 @@ module Ordnung
         "/#{name}"
       end
     end
+    # id of name and parent gizmo
+    # timestamp of creation
     attr_reader :name_id, :parent_id, :added_at
     #
     # Gizmo#new

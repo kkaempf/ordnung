@@ -80,6 +80,9 @@ module Ordnung
       log.info "Tag.fullname(#{@name.name.inspect}, #{@parent_id.inspect})"
       ((@parent_id)?"#{Tag.from_id(@parent_id).fullname}:":"") + @name.name
     end
+    # tag id
+    # tag name
+    # id of parent tag
     attr_reader :id, :name, :parent_id
     #
     # create new Tag instance
