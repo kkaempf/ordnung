@@ -29,7 +29,7 @@ module Ordnung
     # check for equality
     #
     def == blob
-      super && self.class == blob.class
+      super(blob) && (self.class == blob.class)
     end
   end
 end
