@@ -6,11 +6,10 @@ module Ordnung
   # A name can be any string, like a filename, a path component, or a tag (resp. part of a tag)
   #
   class Name
-    #
-    # make log accessible
-    #
+    @@index = "ordnung-names"
+
     def log
-      Ordnung::logger
+      ::Ordnung.logger
     end
     #
     # pass the database instance to the Name class
@@ -30,7 +29,7 @@ module Ordnung
     # The database index associated with Names
     #
     def self.index
-      @@index ||= "ordnung-names"
+      @@index
     end
     #
     # set database index (for testing)
@@ -50,10 +49,10 @@ module Ordnung
     # retrieve +Name+ from id
     # @return +Name+ or nil
     #
-    def self.from_id id
+    def self.by_id id
       return nil if id.nil?
       begin
-        name = @@db.by_id(index, id)['name']
+        name = @@db.by_id(@@index, id)['name']
         Name.new(name, id)
       rescue
         nil
@@ -66,30 +65,32 @@ module Ordnung
     def self.id_by_name name
       return nil if name.nil?
       begin
-        id = @@db.by_hash(index, self.to_hash(name))
+        id = @@db.by_hash(@@index, self.to_hash(name))
       rescue
         nil
       end
     end
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    public
 
     #
     # test +Name+ equality
     #
     def == other
-      @name == other.name && @id == other.id
+      @name == other.name && @self_id == other.self_id
     end
 
     #
     # +String+ representation of +Name+
     #
     def to_s
-      "Name(#{@name.inspect}@#{@id.inspect})"
+      "Name(#{@name.inspect}@#{@self_id.inspect})"
     end
 
     #
     # make id and name accessible
     #
-    attr_reader :id, :name
+    attr_reader :self_id, :name
     #
     # create new +Name+ (or load from db)
     #
@@ -99,13 +100,13 @@ module Ordnung
       raise "Name cannot be nil" if name.nil?
       @name = name
       if id
-        @id = id
+        @self_id = id
       else
         id = Name.id_by_name(name)
         if id
-          @id = id
+          @self_id = id
         else
-          @id = @@db.create(Name.index, Name.to_hash(@name))
+          @self_id = @@db.create(Name.index, Name.to_hash(@name))
         end
       end
     end

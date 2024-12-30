@@ -3,38 +3,36 @@ require_relative "test_helper"
 
 describe Ordnung::Tag do
   before :all do
-    Ordnung::Tag.init
     @file_one = ::File.join(data_directory, 'one')
     @file_two = ::File.join(data_directory, 'two.txt')
     @file_three = ::File.join(data_directory, 'three.bytes')
     @tag_one = Ordnung::Tag.new("tag-one")
     @tag_two = Ordnung::Tag.new("tag:two")
-    Ordnung::Tagging.init
   end
 
   after :all do
-    Ordnung::Db.delete_index(Ordnung::Tagging.index)
-    Ordnung::Db.delete_index(Ordnung::Tag.index)
-    Ordnung::Db.delete_index(Ordnung::Name.index)
+#    @ordnung.db.delete_index(Ordnung::Tagging.index)
+#    @ordnung.db.delete_index(Ordnung::Tag.index)
+#    @ordnung.db.delete_index(Ordnung::Name.index)
   end
 
   context "tagging creation" do
     it "can create a simple tagging" do
-      gizmo = Ordnung::Gizmo.import @file_one
+      gizmo = @ordnung.import @file_one
+      expect(gizmo.class).to eq(Ordnung::Blob)
       gizmo.upsert
       tagging = Ordnung::Tagging.new(@tag_one, gizmo)
-      tagging.upsert
-      expect(tagging.gizmo_id).to eq(gizmo.id)
+      expect(tagging.gizmo_id).to eq(gizmo.self_id)
       tg = tagging.gizmo
       expect(tg).to eq(gizmo)
-      expect(tagging.tag_id).to eq(@tag_one.id)
+      expect(tagging.tag_id).to eq(@tag_one.self_id)
       expect(tagging.tag).to eq(@tag_one)
     end
 #    it "can create a complex tagging" do
 #      gizmo = Ordnung::Gizmo.import @file_two
 #      tagging = Ordnung::Tagging.new(@tag_two, gizmo)
-#      expect(tagging.gizmo_id).to eq(gizmo.id)
-#      expect(tagging.tag_id).to eq(@tag_two.id)
+#      expect(tagging.gizmo_id).to eq(gizmo.self_id)
+#      expect(tagging.tag_id).to eq(@tag_two.self_id)
 #    end
 #    it "can retrieve a complex tagging" do
 #      gizmo = Ordnung::Gizmo.import @file_two

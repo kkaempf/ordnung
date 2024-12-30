@@ -10,7 +10,25 @@ module Ordnung
   #
   #
   class Gizmo
+    @@index = "ordnung-gizmos"
+
+    def log
+      ::Ordnung.logger
+    end
+    def self.log
+      ::Ordnung.logger
+    end
     private
+    #
+    # Database index name
+    #
+    def self.index
+      @@index
+    end
+    # set index (for testing)
+    def self.index= idx
+      @@index = idx
+    end
     #
     # find Gizmo id by pattern
     # @return id
@@ -24,43 +42,11 @@ module Ordnung
       end
     end
     #
-    # make log accessible
-    #
-    def self.log
-      Ordnung::logger
-    end
-    #
-    # make log accessible
-    #
-    def log
-      Ordnung::logger
-    end
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    public
-    #
-    # Database methods
-    #
-    # +index+ name of +Gizmo+ in database
-    #
-    def index
-      Gizmo.index
-    end
-    #
     # connect Gizmo to Database
     #
     def self.db= db
       @@db = db
-      db.create_index self.index, self.properties
-    end
-    #
-    # Database index name
-    #
-    def self.index
-      @@index
-    end
-    # set index (for testing)
-    def self.index= idx
-      @@index = idx
+      @@db.create_index self.index, self.properties
     end
     #
     # Database type mapping
@@ -73,72 +59,68 @@ module Ordnung
         :added_at =>  { type: 'date', format: 'yyyy-MM-dd HH:mm:ss Z' } # 2023-11-08 16:03:40 +0100
       }
     end
-    #
-    #
-    # Convert instance variables to Hash
-    #
-    def to_hash
-      hash = { name_id: @name_id, parent_id: @parent_id, added_at: @added_at }
-#      Gizmo.log.info "#{self}.to_hash #{hash.inspect}"
-      hash
-    end
-    #
-    # update or insert
-    # @return id
-    #
-    def upsert
-      hash = to_hash
-      @id = @@db.by_hash index, hash
-#      Gizmo.log.info "upsert #{hash.inspect} -> #{@id}"
-      return if @id
-      hash[:added_at] = @added_at = Time.now.floor
-      hash[:class] = self.class
-      @id = @@db.create index, hash
-    end
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    public
     #
     # Gizmo by id
     # @return gizmo
     #
     def self.by_id id
       raise "No id given" if id.nil?
-      hash = @@db.by_id(self.index, id)
+      hash = @@db.by_id(@@index, id)
 #      log.info "Gizmo.by_id #{id} -> #{hash.inspect}"
-      gizmo = nil
       if hash
-#        log.info "Gizmo.by_id hash #{hash.inspect}"
-        klass = hash['class']
-        gizmo = (eval klass).new hash, id
+        log.info "Gizmo.by_id hash #{hash.inspect}"
+        klass = "::#{hash['class']}"
+        (eval klass).new hash, id
+      else
+        nil
       end
-      gizmo
+    end
+    #
+    #
+    # Convert instance variables to Hash
+    #
+    def to_hash
+      log.info "Gizmo.to_hash"
+    end
+    #
+    # update or insert
+    # @return id
+    #
+    def upsert hash={}
+      hash.merge!({ name_id: @name_id, parent_id: @parent_id, added_at: @added_at })
+      @self_id = @@db.by_hash @@index, hash
+      log.info "Gizmo.upsert #{hash.inspect} -> #{@self_id}"
+      return if @self_id
+      # create new Gizmo
+      hash[:added_at] = @added_at = Time.now.floor
+      hash[:class] = self.class
+      @self_id = @@db.create @@index, hash
     end
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     #
     # @return string representation of +Gizmo+
     #
     def to_s
-      "Gizmo(#{self.name}->#{@parentId})"
+      "Gizmo(#{@name}:#{@self_id}->#{@parent_id})"
     end
     #
     # equality operator
     #
-    def == gizmo
-      self.class == gizmo.class &&
-        @name_id == gizmo.name_id &&
-        @parent_id == gizmo.parent_id &&
-        @added_id == gizmo.added_at
+    def == other
+      other &&
+        self.class == other.class &&
+        @name_id == other.name_id &&
+        @parent_id == other.parent_id &&
+        @added_id == other.added_at
     end
     #
     # @return name of Gizmo as string
     #
     def name
       raise "No name" if @name_id.nil?
-      Name.from_id(@name_id)
-    end
-    #
-    # @return id of Gizmo
-    #
-    def id
-      @id
+      Name.by_id(@name_id).name
     end
     #
     # File helper method
@@ -157,23 +139,43 @@ module Ordnung
         "/#{name}"
       end
     end
+    #
+    # Gizmo#has? tag
+    # @return Boolean
+    #
+    def has? tag
+      tag.to? @self_id
+    end
+    #
+    # Gizmo#tag! tag
+    # add tag to gizmo
+    #
+    def tag tg
+      tg.tag @self_id
+    end
+    #
+    # Gizmo#untag! tag
+    # remove tag from gizmo
+    #
+    def untag tag
+      tag.untag @self_id
+    end
     # id of name and parent gizmo
     # timestamp of creation
-    attr_reader :name_id, :parent_id, :added_at
+    attr_reader :self_id, :name_id, :parent_id, :added_at
     #
     # Gizmo#new
     #
     def initialize name, parent_id=nil
-      log.info "Gizmo.new(#{name.class}:#{name})"
+      log.info "Gizmo.new(#{name.inspect},#{parent_id.inspect})"
       case name
       when String, Pathname
 #        Gizmo.log.info "Gizmo.new(#{parent_id} / #{name.inspect})"
-        @name_id = Name.new(name).id
+        @name_id = Name.new(name).self_id
         @parent_id = parent_id
-        upsert
       when Hash
 #        Gizmo.log.info "Gizmo.new(#{name.inspect}) -> #{parent_id}"
-        @id = parent_id
+        @self_id = parent_id
         @parent_id = name['parent_id']
         @name_id = name['name_id']
         @added_at = Time.new(name['added_at'])

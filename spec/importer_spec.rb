@@ -10,10 +10,10 @@ describe Ordnung::Importer do
 
   context "Ordnung::Importer class methods" do
     it "can import a file" do
-      @importer.import @file_one
+      @ordnung.import @file_one
     end
     it "can import a directory" do
-      @importer.import data_directory
+      @ordnung.import data_directory
     end
   end
 end

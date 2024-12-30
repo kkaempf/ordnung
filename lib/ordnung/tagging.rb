@@ -10,11 +10,12 @@ module Ordnung
   # see also +Tag+
   #
   class Tagging
+    @@index = "ordnung-taggings"
     #
     # Database index name
     #
     def self.index
-      @@index ||= "ordnung-taggings"
+      @@index
     end
     #
     # set index (for testing)
@@ -23,31 +24,41 @@ module Ordnung
       @@index = idx
     end
     #
-    # properties of a tagging, linking a +Tag+ with a +File+ (representing an on-disk file)
+    # properties of a tagging, linking a +Tag+ with a +Gizmo+
     #
     def self.properties
       {
-        tag:  { type: "keyword"}, # from tag
-        file: { type: "keyword"}  # to file
+        tag_id:  { type: "keyword"}, # from tag
+        gizmo_id: { type: "keyword"}  # to gizmo
       }
     end
     #
     # ensure startup order
     #
-    def self.init
-      Ordnung::Db.properties = self.properties
-      Ordnung::Db.create_index self.index
-    end
+    def self.db= db
+      @@db = db
+      @@db.create_index self.index, self.properties
+   end
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    private
+    #
+    # update or insert
+    # @return
+    #
+    def upsert
+      log.info "Tagging.upsert(tag #{@tag_id.inspect} <-> gizmo #{@gizmo_id.inspect})"
+      hash = { tag_id: @tag_id, gizmo_id: @gizmo_id }
+      @self_id = @@db.by_hash index, hash
+#     log.info "Tagging.upsert #{hash.inspect} -> #{@id}"
+      return if @self_id
+      @self_id = @@db.create index, hash
+    end
+    public
     #
     # Database methods
     #
-    
-    #
-    # make logger accessible inside class
-    #
     def log
-      Ordnung::logger
+      ::Ordnung.logger
     end
     #
     # get index name associated with Tags
@@ -56,61 +67,50 @@ module Ordnung
     def index
       Tagging.index
     end
-    #
-    #
-    # Convert instance variables to Hash
-    #
-    def to_hash
-      { tag_id: @tag_id, file_id: @file_id }
-    end
-    #
-    # update or insert
-    # @return
-    #
-    def upsert
-      hash = to_hash
-      @id = Ordnung::Db.by_hash index, hash
-#     log.info "upsert #{hash.inspect} -> #{@id}"
-      return if @id
-      @id = Ordnung::Db.create index, hash
-    end
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    attr_reader :self_id, :tag_id, :gizmo_id
     #
     # Instance methods
     #
-    
+    def == other
+      other &&
+        @tag_id == other.tag_id &&
+        @gizmo_id == other.gizmo_id
+    end
     #
-    # create new Tag object, linking +tag+ with +file+
+    # create new Tag object, linking +tag+ with +gizmo+
     #
-    def initialize tag, file
-#     log.info "Tagging.new(tag #{tag} <-> file #{file})"
-      @tag_id = tag.id
-      @file_id = file.id
+    def initialize tag, gizmo
+      log.info "Tagging.new(tag #{tag.inspect} <-> gizmo #{gizmo.inspect})"
+      @tag_id = tag.self_id
+      @gizmo_id = gizmo.self_id
       upsert
     end
     #
-    # @return tag id
+    # @return +id+ of Tag
     #
     def tag_id
       @tag_id
     end
     #
-    # return self ?!
+    # return +Tag+
     #
     def tag
-      Ordnung::Tag.by_id @tag_id
+      log.info "Tagging.tag #{@tag_id.inspect}"
+      Tag.by_id @tag_id
     end
     #
-    # @return +id+ of file
+    # @return +id+ of gizmo
     #
-    def file_id
-      @file_id
+    def gizmo_id
+      @gizmo_id
     end
     #
-    # @return +file+
+    # @return +gizmo+
     #
-    def file
-      Ordnung::File.by_id @file_id
+    def gizmo
+      log.info "Tagging.gizmo #{@gizmo_id.inspect})"
+      Gizmo.by_id @gizmo_id
     end
   end
 end

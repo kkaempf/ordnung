@@ -28,10 +28,13 @@ RSpec.configure do |config|
   config.color = true
 
   config.before :all do
-    @importer = Ordnung::Importer.new
+    @ordnung = Ordnung::Ordnung.new
   end
 
   config.after(:all) do
-#    @importer.db.delete_index(Ordnung::Name.index)
+    @ordnung.db.delete_index(Ordnung::Name.index)
+    @ordnung.db.delete_index(Ordnung::Tag.index)
+    @ordnung.db.delete_index(Ordnung::Tagging.index)
+    @ordnung.db.delete_index(Ordnung::Gizmo.index)
   end
 end

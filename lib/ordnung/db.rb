@@ -13,44 +13,41 @@ module Ordnung
   #
   class Db
     #
-    # make log accessible
-    #
-    def log
-      Ordnung::logger
-    end
-    #
     # collect properties
     #
     def collect_properties properties
-      log.info "    Db.collect_properties #{properties.inspect}"
       @properties.merge!(properties) if properties
     end
     #
     # set index with collected properties
     #
     def create_index index, properties=nil
-      log.info "    Db.create_index(#{index}, #{properties.inspect})"
+      @log.info "    Db.create_index(#{index}, #{properties.inspect})"
       if @client.indices.exists?(index: index)
         current_mapping = @client.indices.get_mapping(index: index)
-        log.info "        Db.get_mapping(#{index}): #{current_mapping.inspect}"
+        @log.info "        Db.get_mapping(#{index}): #{current_mapping.inspect}"
         current_properties = current_mapping[index]['mappings']['properties'] rescue nil
-        log.info "        Db.current_properties(#{index}): #{current_properties.inspect}"
-        log.info "        Db.put_mapping(#{index}): #{properties.inspect}"
+        @log.info "        Db.current_properties(#{index}): #{current_properties.inspect}"
+        @log.info "        Db.put_mapping(#{index}): #{properties.inspect}"
         equal_properties = true
         properties.each do |k,v|
           cv = current_properties[k] || current_properties[k.to_s] # get current value
+          if cv.nil?
+            @log.error "current_properties[#{k.inspect}] is nil"
+            next
+          end
           if v
             type = v[:type] || v["type"]
             ctype = cv[:type] || cv["type"]
             if ctype == type
               next
             else
-              log.info "            #{k}: #{ctype.inspect} != #{type.inspect}"
+              @log.info "            #{k}: #{ctype.inspect} != #{type.inspect}"
               equal_properties = false
               break
             end
           else
-            log.info "        Key #{k.inspect} not found in current properties"
+            @log.info "        Key #{k.inspect} not found in current properties"
             equal_properties = false
             break
           end
@@ -86,7 +83,7 @@ module Ordnung
     #
     def by_id index, id
       result = @client.get(index: index, id: id)
-      log.info "    Db.#{__callee__} #{index.inspect} - #{id.inspect}"
+      @log.info "    Db.#{__callee__} #{index.inspect} - #{id.inspect}"
       return nil if result.nil?
       result['_source']
     end
@@ -106,7 +103,7 @@ module Ordnung
         end
         query = { bool: { filter: filter } }
       end
-      log.info "    Db.#{__callee__} #{index.inspect} - #{hash.inspect}: #{query.inspect}"
+      @log.info "    Db.#{__callee__} #{index.inspect} - #{hash.inspect}: #{query.inspect}"
       result = @client.search(
         index: index,
         body: {
@@ -120,7 +117,7 @@ module Ordnung
     # @return id
     #
     def create index, hash
-      log.info "    Db.#{__callee__}: #{index} #{hash.inspect}"
+      @log.info "    Db.#{__callee__}: #{index} #{hash.inspect}"
       result = @client.create(
         index: index,
         body: hash
@@ -128,11 +125,16 @@ module Ordnung
       @client.indices.refresh(index: index)
       result['_id']
     end
-    
+    #
+    #
+    #
+    def == tag
+    end
     #
     # Create a new database backend instance
     #
-    def initialize
+    def initialize logger
+      @log = logger
       begin
         @client = OpenSearch::Client.new(
           url: "http://localhost:9200",
@@ -142,7 +144,7 @@ module Ordnung
         )
         @client.cluster.health
       rescue Exception => e
-        log.error "OpenSearch database not running: #{e}"
+        @log.error "OpenSearch database not running: #{e}"
       end
     end
 

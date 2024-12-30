@@ -17,4 +17,4 @@ module Ordnung
   end
 end
 
-require_relative "ordnung/importer"
+require_relative "ordnung/ordnung"

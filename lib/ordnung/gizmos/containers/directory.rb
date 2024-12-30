@@ -5,6 +5,9 @@ module Ordnung
     # file system directory
     #
     class Directory < Container
+      def log
+        ::Ordnung.logger
+      end
       #
       # extensions associated with +directory+ files
       #
@@ -20,8 +23,9 @@ module Ordnung
       #
       # create new directory instance
       #
-      def initialize name, parent
-        super name, parent
+      def initialize name, parent_id, pathname=nil
+        log.info "#{self.class.inspect}.new #{name.inspect}, #{parent_id.inspect}, #{pathname.inspect}"
+        super name, parent_id, pathname || name
         @hash = nil
       end
     end

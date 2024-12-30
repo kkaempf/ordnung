@@ -13,17 +13,18 @@ module Ordnung
   # see also +Tagging+
   #
   class Tag
+    @@index = "ordnung-tags"
     #
     # make log accessible
     #
     def self.log
-      Ordnung::logger
+      ::Ordnung::logger
     end
     #
     # make log accessible
     #
     def log
-      Ordnung::logger
+      ::Ordnung::logger
     end
     #
     # connect Tag to Database
@@ -36,7 +37,7 @@ module Ordnung
     # Database index name
     #
     def self.index
-      @@index ||= "ordnung-tags"
+      @@index
     end
     #
     # set index (for testing)
@@ -57,12 +58,12 @@ module Ordnung
     # retrieve +Tag+ from id
     # @return +Tag+ or nil
     #
-    def self.from_id id
-      log.info "Tag.from_id(#{id.inspect})"
+    def self.by_id id
+      log.info "Tag.by_id(#{id.inspect})"
       return nil if id.nil?
       begin
         hash = @@db.by_id(Tag.index, id)
-        log.info "    Tag.from_id(hash #{hash.inspect})"
+        log.info "\tTag.by_id(hash #{hash.inspect})"
         Tag.new(hash, id) if hash
       rescue
         nil
@@ -72,18 +73,22 @@ module Ordnung
     #
     # Instance methods
     #
-
+    def == other
+      other &&
+        @name.self_id == other.name.self_id &&
+        @parent_id == other.parent_id
+    end
     #
     # retrieve full name of tag
     #
     def fullname
       log.info "Tag.fullname(#{@name.name.inspect}, #{@parent_id.inspect})"
-      ((@parent_id)?"#{Tag.from_id(@parent_id).fullname}:":"") + @name.name
+      ((@parent_id)?"#{Tag.by_id(@parent_id).fullname}:":"") + @name.name
     end
     # tag id
     # tag name
     # id of parent tag
-    attr_reader :id, :name, :parent_id
+    attr_reader :self_id, :name, :parent_id
     #
     # create new Tag instance
     #
@@ -96,27 +101,28 @@ module Ordnung
         log.info "Tag.new(#{name.inspect} -> #{elements.inspect} + #{last.inspect})"
         elements.each do |element|
           tag = Tag.new(element, parent_id)
-          parent_id = tag.id
+          parent_id = tag.self_id
         end
-        @id = nil
+        @self_id = nil
         @name = Name.new last
         @parent_id = parent_id
       when Name # from Name
         log.info "Tag.new(#{name.inspect})"
-        @id = nil
+        @self_id = nil
         @name = name
         @parent_id = nil
       when Hash # from database
         log.info "Tag.new(#{name.inspect}, #{parent_id.inspect})"
-        @id = parent_id
-        @name = Name.from_id(name['name_id'])
+        @self_id = parent_id
+        @name = Name.by_id(name['name_id'])
         @parent_id = name['parent_id']
       end
-      if @id.nil? # not from database
-        hash = { name_id: @name.id, parent_id: @parent_id }
-        @id = @@db.by_hash(Tag.index, hash)
-        if @id.nil? # does not exist
-          @id = @@db.create(Tag.index, hash)
+      if @self_id.nil? # not from database
+        hash = { name_id: @name.self_id, parent_id: @parent_id }
+        @self_id = @@db.by_hash(Tag.index, hash)
+        if @self_id.nil? # does not exist
+          # upsert !
+          @self_id = @@db.create(Tag.index, hash)
         end
       end
     end

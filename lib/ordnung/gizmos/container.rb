@@ -1,3 +1,5 @@
+require_relative 'file'
+
 module Ordnung
   #
   # A +Container+ doesn't provide any actual content
@@ -5,7 +7,10 @@ module Ordnung
   #
   # Used to represent directories and archives (tar, zip, ...)
   #
-  class Container < File
+  class Container < ::Ordnung::File
+    def log
+      ::Ordnung.logger
+    end
     #
     # is not associated with any extensions
     # @return nil
@@ -23,8 +28,9 @@ module Ordnung
     #
     # return new instance of +Container+
     #
-    def initialize path, parent
-      super path, parent
+    def initialize name, parent_id, pathname
+      log.info "Ordnung::Container.new #{name.inspect}, #{parent_id.inspect}, #{pathname.inspect}"
+      super name, parent_id, pathname
     end
     #
     # iterate over each gizmo in Container

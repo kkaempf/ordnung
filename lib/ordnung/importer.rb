@@ -5,27 +5,19 @@ require_relative "gizmo"
 require_relative "tagging"
 
 module Ordnung
-  #
-  # Main instance providing an API to import, tag, and find files
-  #
   class Importer
-    #
-    # make log accessible
-    #
-    def self.log
-      Ordnung::logger
-    end
-    #
-    # make log accessible
-    #
-    def log
-      Ordnung::logger
-    end
     #
     # Hash of extension:String => implementation:Class
     #   daisy chain            => extension:String
     #
     @@extensions = Hash.new
+    #
+    #
+    #
+    def log
+      ::Ordnung.logger
+    end
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     #
     # Find implementation class for extension ext
     # ext:String
@@ -65,9 +57,10 @@ module Ordnung
           klass = $1.capitalize
 #          log.info "Found #{path} implementing #{klass}"
           require path
-          gizmo = eval "#{module_prefix}::#{klass}"
+          gizmo = eval "::#{module_prefix}::#{klass}"
           add_extensions gizmo
-          Ordnung::Db.collect_properties gizmo.properties rescue nil
+#          log.info "    collect_properties #{gizmo}: #{gizmo.properties.inspect}"
+          @db.collect_properties gizmo.properties rescue nil
         when /^(.*)\.rb~$/
           # silently skip editor backups
         else
@@ -96,18 +89,36 @@ module Ordnung
       when "Ruby script, ASCII text"
         klass = @@extensions['rb']
       else
-        klass = Ordnung::Blob
+        klass = ::Ordnung::Blob
       end
       klass
     end
     #
     # recursively import pathname as directory
+    # called if pathname.directory? is true
+    #
     # @return +Gizmo+
     #
     private
-    def import_directory pathname, depth, parent_id=nil
-      log.info "Importer.import_directory #{pathname}"
-      directory = Containers::Directory.new(pathname, parent_id)
+    def import_directory pathname, depth=0, parent_id=nil
+      log.info "Importer.import_directory #{pathname.inspect}, #{depth}, #{parent_id.inspect}"
+      dirname, basename = pathname.split
+      log.info "\tdirname #{dirname.inspect}, basename #{basename.inspect}"
+      if parent_id.nil?
+        parents = []
+        base = basename
+        while dirname != base
+          dir, base = dirname.split
+          parents.unshift [base, dirname]
+          dirname = dir
+        end
+        log.info "\tparents #{parents.inspect}"
+        parents.each do |parent,dirname|
+          dir = Containers::Directory.new(parent, parent_id, dirname)
+          parent_id = dir.self_id
+        end
+      end
+      directory = Containers::Directory.new(basename, parent_id, pathname)
       return directory if depth == 0
       ::Dir.foreach(pathname) do |node|
         case node
@@ -132,43 +143,21 @@ module Ordnung
     end
     #
     # import a +Pathname+ as +Gizmo+
+    # called if pathname.directory? is false and the file's parent_id is known
+    #
     # @return +Gizmo+
     #
-    def import_file pathname, depth, parent_id=nil
-      case pathname
-      when Pathname, File
-        # do nothing
-      else
-        pathname = Pathname.new(pathname)
-      end
+    def import_file name, parent_id, pathname
       return nil if pathname.to_s[-1,1] == '~'     # skip backups
       unless ::File.readable?(pathname)
         log.error "File #{pathname.inspect} is not readable"
         return nil
       end
-      #
-      # import from Pathname
-      #
-      log.info "Importer.import file #{pathname.inspect}"
-      dir, base = pathname.split
-      #
-      # create parents
-      #
-      parent_id = nil
-      elements = dir.to_s.split('/')
-      log.info "  elements #{elements.inspect}"
-      while name = elements.shift
-        log.info "  name #{name.inspect}, elements #{elements.inspect}"
-        # skip leading and double slashes
-        next if name.empty?
-        gizmo = Gizmo.new(name, parent_id)
-        Tag.new(name)
-        parent_id = gizmo.id
-      end
+      log.info "Importer.import_file #{name.inspect}, #{parent_id.inspect}, #{pathname.inspect}"
       #
       # find largest matching extension
       #
-      elements = base.to_s.split('.')
+      elements = name.to_s.split('.')
       if elements.size == 1 # no extension
         klass = detect pathname
       else
@@ -190,8 +179,8 @@ module Ordnung
           klass = Ordnung::Blob
         end
       end
-      log.info "#{__callee__}: #{klass}.new(#{pathname.inspect}, #{parent_id})"
-      klass.new(pathname, parent_id)
+      log.info "Importer.import as #{klass}.new(#{name.inspect}, #{parent_id}, #{pathname.inspect})"
+      klass.new(name, parent_id, pathname)
     end
     #
     # - - - - - - - - - - - - - - - - - - - - - - - -
@@ -206,26 +195,23 @@ module Ordnung
     #        1: just directory and its direct contents (subdirs only a depth 0)
     #       -1: recursive import
     #
-    def import path, depth=0, parent_id=nil
+    def import path, depth=0
+      log.info "Importer.import #{path.inspect}, #{depth.inspect}"
       pathname = Pathname.new ::File.expand_path(path)
       if pathname.directory?
-        import_directory pathname, depth, parent_id
+        import_directory pathname, depth
       else
-        import_file pathname, depth, parent_id
+        parent, base = pathname.split
+        dir = import_directory parent
+        log.info "\timported #{parent.inspect} to #{dir.inspect}"
+        import_file base, dir.self_id, pathname
       end
     end
     #
-    # make database instance accessible
+    # initialize the infrastructure
     #
-    attr_reader :db
-    # create instance of Ordnung, initializing the infrastructure
-    #
-    def initialize
-      @db = Db.new
-      Name.db = @db
-      Tag.db = @db
-#      Tagging.db = @db
-      Gizmo.db = @db
+    def initialize db
+      @db = db
       #
       # load all Gizmo implementations into the Ordnung namespace
       #

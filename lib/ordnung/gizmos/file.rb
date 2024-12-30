@@ -1,5 +1,3 @@
-require_relative 'containers/directory'
-
 module Ordnung
   #
   # File represents an actual file on disk, which has
@@ -15,6 +13,7 @@ module Ordnung
     #
     def self.init
       @@index = 'ordnung-files'
+      @@properties = self.properties.merge!(self.superclass.properties)
       Ordnung::Db.create_index @@index
     end
     #
@@ -34,76 +33,65 @@ module Ordnung
         time: { type: 'date', format: 'yyyy-MM-dd HH:mm:ss Z' } # 2023-11-08 16:03:40 +0100
       }
     end
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    public
+    def log
+      ::Ordnung.logger
+    end
+    #
+    #
+    #
+    def upsert hash={}
+      super hash.merge!({ hash: @hash, size: @size, time: @time })
+    end
     #
     # +hash+ : checksum of File
     # +size+ : number of bytes
     # +time+ : timestamp from filesystem
     #
-    attr_reader :hash, :size, :time
+    attr_reader :hash, :size, :time, :properties
     #
-    # create instance of File
+    # create instance of File or Directory
     #
-    def initialize pathname, parent_id=nil
-      super pathname, parent_id
-      Gizmo.log.info "File.new(#{pathname.class}:#{name})"
-      case pathname
-      when String, Pathname
-        @hash = `sha256sum -b #{pathname}`.split(' ')[0]
+    # Since Ordnung:File is a parent class of Ordnung::Container::Directory,
+    # this initialization routine is called for plain files and directories.
+    #
+    def initialize name, parent_id, pathname=nil
+      log.info "Ordnung::File.new #{name.inspect}, #{parent_id.inspect}, #{pathname.inspect}"
+      super name, parent_id
+      case name
+      when Pathname
+        @hash = if pathname.directory?
+                  nil
+                else
+                  `sha256sum -b #{pathname}`.split(' ')[0]
+                end
         @size = ::File.size(pathname)
         @time = ::File.mtime(pathname).floor
       when Hash
-        @hash = name['@hash']
-        @size = name['@size']
-        @time = Time.new(name['@time'])
+        @hash = name['hash']
+        @size = name['size']
+        @time = Time.new(name['time'])
+      else
+        raise "Ordnung::Fleet.new #{name.class} unhandled"
       end
     end
     #
     # check for equality
     #
-    def == file
-      super && file.class == self.class &&
-        @hash == file.hash &&
-        @size == file.size &&
-        @time == file.time
+    def == other
+      other &&
+        self.class == other.class &&
+        super &&
+        @hash == other.hash &&
+        @size == other.size &&
+        @time == other.time
     end
     #
     # string representation for debugging/logging purposes
     #
     def to_s
       "#{self.path} #{@size} #{@time} #{@hash}"
-    end
-    #
-    # iterate over each file
-    # @return Iterator
-    #
-    def each
-    end
-    #
-    # iterate over each assigned tag
-    # @return Iterator
-    #
-    def each_tag
-    end
-    #
-    # File#has? tag
-    # @return Boolean
-    #
-    def has? tag
-      tag.to? @id
-    end
-    #
-    # File#tag! tag
-    # add tag to file
-    #
-    def tag tg
-      tg.tag @id
-    end
-    #
-    # File#untag! tag
-    # remove tag from file
-    #
-    def untag tag
-      tag.untag @id
     end
   end
 end

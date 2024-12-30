@@ -4,4 +4,5 @@ $:.push(File.join(File.expand_path("..", File.dirname(__FILE__)),"lib"))
 
 require "ordnung"
 
-Ordnung.import ARGV.pop
+ordnung = Ordnung::Ordnung.new
+ordnung.import ARGV.pop

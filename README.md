@@ -21,7 +21,7 @@ gem build
 
 ## Internals
 
-### Toplevel
+### Architecture
 
 It is assumed that one wants to index files, many files, organized in
 directories or archives (tarball, zip, iso, disk image, ...)
@@ -47,22 +47,21 @@ Each of these file is *uniquely* identified by
 
 - files can get any number of tags
 
+### Gizmo
 
 - the (abstract) file representation is the `Gizmo`
-  Gizmo represents a file, resp. specific file types with specific
-  properties
-
-- the toplevel API is provided by Ordnung::Ordnung
-  An Ordnung instance can
-  - import a file
-    - split it into its file path components, determine its type, and,
-      based on the type, call the actual importer which knows the
-      additional properties and how to extract them.
-    - collect properties and store them
-    - retrieve a set of properties from the database and construct the
-      corresponding in-memory instance
-  - add and remove tags
-  - filter by tags
+  Gizmo is the baseclass from which specific file types with specific
+  properties are derived.
+  The Gizmo class is never instantiated, there is no file type
+  associated with it.
+  Gizmo properties are inherited by all derived classes. The
+properties are
+  - class - the actual derived class
+  - name_id - the database id of the filename (basename)
+  - parent_id - the id of the parent Gizmo. Typically a Directory or a
+    Container (tarfile, zipfile, disk image, iso, ...)
+  - added_at - timestamp of when the Gizmo was added (imported) to the
+    database
 
 ### Implementation details
 
@@ -80,7 +79,7 @@ hierachy.
 actual tagging.
 
 
-## Database considerations
+### Database considerations
 
 Everything is stored in a single database (that is only the file
 metadata, like name, path, date, checksum, tags, etc. - not the actual
@@ -104,3 +103,18 @@ Split into the following tables
 - `ordnung-taggings`
   pairs of (tag, gizmo) ids, linking tags to gizmos (well, files
   actually)
+
+## API
+
+- the toplevel API is provided by Ordnung::Ordnung
+  An Ordnung instance can
+  - import a file
+    - split it into its file path components, determine its type, and,
+      based on the type, call the actual importer which knows the
+      additional properties and how to extract them.
+    - collect properties and store them
+    - retrieve a set of properties from the database and construct the
+      corresponding in-memory instance
+  - add and remove tags
+  - filter by tags
+  - iterate through Gizmos

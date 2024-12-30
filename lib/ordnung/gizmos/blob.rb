@@ -1,3 +1,5 @@
+require_relative 'file'
+
 module Ordnung
   #
   # Representing a binary large object
@@ -5,7 +7,10 @@ module Ordnung
   #
   # Acts as an abstract base class for the actual file types
   #
-  class Blob < File
+  class Blob < ::Ordnung::File
+    def log
+      ::Ordnung.logger
+    end
     #
     # @return list of extensions associated to this type
     #
@@ -18,18 +23,22 @@ module Ordnung
     def self.properties
       nil
     end
-    #
-    # Create +Blob* instance
-    #
-    def initialize name, parent_id
-      super name, parent_id
-#      Gizmo.log.info "Blob.#{__callee__}(#{name.class}:#{name}, #{parent_id.inspect})"
-    end
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     #
     # check for equality
     #
-    def == blob
-      super(blob) && (self.class == blob.class)
+    def == other
+#      log.info "Blob.== #{self.inspect} <-> #{other.inspect}"
+      other &&
+        self.class == other.class &&
+        super
+    end
+    #
+    # Create +Blob* instance
+    #
+    def initialize name, parent_id, pathname=nil
+      log.info "Blob.new(#{name.inspect}, #{parent_id.inspect}, #{pathname.inspect}"
+      super
     end
   end
 end
