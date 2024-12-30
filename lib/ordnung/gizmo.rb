@@ -113,7 +113,7 @@ module Ordnung
         self.class == other.class &&
         @name_id == other.name_id &&
         @parent_id == other.parent_id &&
-        @added_id == other.added_at
+        @added_at == other.added_at
     end
     #
     # @return name of Gizmo as string
