@@ -129,10 +129,11 @@ module Ordnung
     def path
       if @parent_id
         begin
+          n = name
           ppath = Gizmo.by_id(@parent_id).path
-          ::File.join(ppath, name)
+          ::File.join(ppath, n)
         rescue
-          Gizmo.log.info "*** Gizmo.path(#{ppath.inspect} / #{name.inspect})"
+          Gizmo.log.info "*** Gizmo.path(#{@parent_id.inspect}:#{ppath.inspect} / #{n.inspect})"
           raise
         end
       else

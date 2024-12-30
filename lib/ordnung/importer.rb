@@ -101,7 +101,7 @@ module Ordnung
     #
     private
     def import_directory pathname, depth=0, parent_id=nil
-      log.info "Importer.import_directory #{pathname.inspect}, #{depth}, #{parent_id.inspect}"
+      log.info "Importer.import_directory #{pathname.inspect}, #{depth.inspect}, #{parent_id.inspect}"
       dirname, basename = pathname.split
       log.info "\tdirname #{dirname.inspect}, basename #{basename.inspect}"
       if parent_id.nil?
@@ -119,7 +119,7 @@ module Ordnung
         end
       end
       directory = Containers::Directory.new(basename, parent_id, pathname)
-      return directory if depth == 0
+      return directory if depth <= 0
       ::Dir.foreach(pathname) do |node|
         case node
         when ".", ".."
@@ -136,7 +136,7 @@ module Ordnung
           next
         else
           path = ::File.join(pathname, node)
-          import path, depth-1, directory
+          import path, depth-1, directory.self_id
         end
       end
       directory
@@ -158,7 +158,8 @@ module Ordnung
       # find largest matching extension
       #
       elements = name.to_s.split('.')
-      if elements.size == 1 # no extension
+      if elements.size == 1 || # no extension
+        ((elements.size == 2) && elements[0].empty?) # dot-file
         klass = detect pathname
       else
         # find largest extension
@@ -175,8 +176,8 @@ module Ordnung
           name << elements.shift    #  move one more element to name
         end
         if klass.nil?
-          log.warn "Unimplemented #{base}(#{dir})"
-          klass = Ordnung::Blob
+          log.warn "Unimplemented #{name}(#{pathname})"
+          klass = ::Ordnung::Blob
         end
       end
       log.info "Importer.import as #{klass}.new(#{name.inspect}, #{parent_id}, #{pathname.inspect})"
@@ -195,14 +196,15 @@ module Ordnung
     #        1: just directory and its direct contents (subdirs only a depth 0)
     #       -1: recursive import
     #
-    def import path, depth=0
-      log.info "Importer.import #{path.inspect}, #{depth.inspect}"
+    def import path, depth=0, parent_id=nil
+      depth = depth.to_i rescue 0
+      log.info "Importer.import #{path.inspect}, #{depth.inspect}, #{parent_id.inspect}"
       pathname = Pathname.new ::File.expand_path(path)
       if pathname.directory?
-        import_directory pathname, depth
+        import_directory pathname, depth, parent_id
       else
         parent, base = pathname.split
-        dir = import_directory parent
+        dir = import_directory parent, depth-1, parent_id
         log.info "\timported #{parent.inspect} to #{dir.inspect}"
         import_file base, dir.self_id, pathname
       end

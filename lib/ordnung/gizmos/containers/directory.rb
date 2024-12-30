@@ -27,6 +27,7 @@ module Ordnung
         log.info "#{self.class.inspect}.new #{name.inspect}, #{parent_id.inspect}, #{pathname.inspect}"
         super name, parent_id, pathname || name
         @hash = nil
+        upsert
       end
     end
   end

@@ -60,7 +60,8 @@ module Ordnung
       log.info "Ordnung::File.new #{name.inspect}, #{parent_id.inspect}, #{pathname.inspect}"
       super name, parent_id
       case name
-      when Pathname
+      when Pathname, String
+        raise "No pathname" if pathname.nil?
         @hash = if pathname.directory?
                   nil
                 else

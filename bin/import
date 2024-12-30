@@ -5,4 +5,10 @@ $:.push(File.join(File.expand_path("..", File.dirname(__FILE__)),"lib"))
 require "ordnung"
 
 ordnung = Ordnung::Ordnung.new
-ordnung.import ARGV.pop
+depth = ARGV.pop || 0
+path = ARGV.pop || "."
+
+puts "Importing #{path.inspect} with depth #{depth.inspect}"
+puts
+
+ordnung.import path, depth

@@ -11,9 +11,10 @@ describe Ordnung::Tag do
   end
 
   after :all do
-#    @ordnung.db.delete_index(Ordnung::Tagging.index)
-#    @ordnung.db.delete_index(Ordnung::Tag.index)
-#    @ordnung.db.delete_index(Ordnung::Name.index)
+    @ordnung.db.delete_index(Ordnung::Gizmo.index)
+    @ordnung.db.delete_index(Ordnung::Tagging.index)
+    @ordnung.db.delete_index(Ordnung::Tag.index)
+    @ordnung.db.delete_index(Ordnung::Name.index)
   end
 
   context "tagging creation" do
