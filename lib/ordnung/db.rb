@@ -12,6 +12,9 @@ module Ordnung
   # Current database target: OpenSearch (resp. ElasticSearch)
   #
   class Db
+    def log
+      ::Ordnung.logger
+    end
     #
     # collect properties
     #
@@ -22,18 +25,18 @@ module Ordnung
     # set index with collected properties
     #
     def create_index index, properties=nil
-      @log.info "    Db.create_index(#{index}, #{properties.inspect})"
+      log.info "    Db.create_index(#{index}, #{properties.inspect})"
       if @client.indices.exists?(index: index)
         current_mapping = @client.indices.get_mapping(index: index)
-        @log.info "        Db.get_mapping(#{index}): #{current_mapping.inspect}"
+        log.info "        Db.get_mapping(#{index}): #{current_mapping.inspect}"
         current_properties = current_mapping[index]['mappings']['properties'] rescue nil
-        @log.info "        Db.current_properties(#{index}): #{current_properties.inspect}"
-        @log.info "        Db.put_mapping(#{index}): #{properties.inspect}"
+        log.info "        Db.current_properties(#{index}): #{current_properties.inspect}"
+        log.info "        Db.put_mapping(#{index}): #{properties.inspect}"
         equal_properties = true
         properties.each do |k,v|
           cv = current_properties[k] || current_properties[k.to_s] # get current value
           if cv.nil?
-            @log.error "current_properties[#{k.inspect}] is nil"
+            log.error "current_properties[#{k.inspect}] is nil"
             next
           end
           if v
@@ -42,12 +45,12 @@ module Ordnung
             if ctype == type
               next
             else
-              @log.info "            #{k}: #{ctype.inspect} != #{type.inspect}"
+              log.info "            #{k}: #{ctype.inspect} != #{type.inspect}"
               equal_properties = false
               break
             end
           else
-            @log.info "        Key #{k.inspect} not found in current properties"
+            log.info "        Key #{k.inspect} not found in current properties"
             equal_properties = false
             break
           end
@@ -83,7 +86,7 @@ module Ordnung
     #
     def by_id index, id
       result = @client.get(index: index, id: id)
-      @log.info "    Db.#{__callee__} #{index.inspect} - #{id.inspect}"
+      log.info "    Db.#{__callee__} #{index.inspect} - #{id.inspect}"
       return nil if result.nil?
       result['_source']
     end
@@ -103,7 +106,7 @@ module Ordnung
         end
         query = { bool: { filter: filter } }
       end
-      @log.info "    Db.#{__callee__} #{index.inspect} - #{hash.inspect}: #{query.inspect}"
+      log.info "    Db.#{__callee__} #{index.inspect} - #{hash.inspect}: #{query.inspect}"
       result = @client.search(
         index: index,
         body: {
@@ -117,7 +120,7 @@ module Ordnung
     # @return id
     #
     def create index, hash
-      @log.info "    Db.#{__callee__}: #{index} #{hash.inspect}"
+      log.info "    Db.#{__callee__}: #{index} #{hash.inspect}"
       result = @client.create(
         index: index,
         body: hash
@@ -128,16 +131,28 @@ module Ordnung
     #
     #
     #
-    def each index, options={}
-      response = @client.search( index: index, size: 1 )
-      @scroll_id[index] = response['_scroll_id']
-      Gizmo.by_hash (result.dig('hits', 'hits', 0))
+    def each index, options={}, &block
+      log.info "Db.each #{index.inspect} #{block_given?}"
+      body = { sort: [ { added_at: { order: 'asc' } } ] }
+      from = 0
+      loop do
+        begin
+          response = @client.search( index: index, from: from, size: 1, body: body )
+          log.info "client.search response #{response.inspect}"
+          hash = response.dig('hits', 'hits', 0, '_source')
+          break if hash.nil?
+          yield Gizmo.by_hash(hash)
+          from += 1
+        rescue Exception => e
+          log.warn "search failed with '#{e}'"
+          raise
+        end
+      end
     end
     #
     # Create a new database backend instance
     #
     def initialize logger
-      @log = logger
       @scroll_id = Hash.new
       begin
         @client = OpenSearch::Client.new(
@@ -148,7 +163,7 @@ module Ordnung
         )
         @client.cluster.health
       rescue Exception => e
-        @log.error "OpenSearch database not running: #{e}"
+        log.error "OpenSearch database not running: #{e}"
       end
     end
 

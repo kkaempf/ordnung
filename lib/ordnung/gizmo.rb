@@ -86,6 +86,14 @@ module Ordnung
       end
     end
     #
+    # iterator
+    #
+    def self.each options={}, &block
+      log.info "Gizmo.each #{block_given?}"
+      @@db.each @@index, options, &block
+    end
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    #
     # update or insert
     # @return id
     #
@@ -99,7 +107,6 @@ module Ordnung
       hash[:class] = self.class
       @self_id = @@db.create @@index, hash
     end
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     #
     # @return string representation of +Gizmo+
     #
@@ -161,12 +168,6 @@ module Ordnung
     #
     def untag tag
       tag.untag @self_id
-    end
-    #
-    # iterator
-    #
-    def each options={}
-      @@db.each @@index
     end
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # id of name and parent gizmo

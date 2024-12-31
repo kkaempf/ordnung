@@ -25,7 +25,8 @@ module Ordnung
     #  :size (Integer) - number of entries to return
     #  :scroll_id (Object) - where to continue (lifetime, see scroll timeout)
     #
-    def each options={}
+    def each options={}, &block
+      Gizmo.each options, &block
     end
     #
     # Import anything (file or directory)
