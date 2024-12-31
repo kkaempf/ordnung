@@ -109,6 +109,7 @@ module Ordnung
         base = basename
         while dirname != base
           dir, base = dirname.split
+          break if dir == base
           parents.unshift [base, dirname]
           dirname = dir
         end
