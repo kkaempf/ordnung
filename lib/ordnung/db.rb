@@ -128,13 +128,17 @@ module Ordnung
     #
     #
     #
-    def == tag
+    def each index, options={}
+      response = @client.search( index: index, size: 1 )
+      @scroll_id[index] = response['_scroll_id']
+      Gizmo.by_hash (result.dig('hits', 'hits', 0))
     end
     #
     # Create a new database backend instance
     #
     def initialize logger
       @log = logger
+      @scroll_id = Hash.new
       begin
         @client = OpenSearch::Client.new(
           url: "http://localhost:9200",

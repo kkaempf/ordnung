@@ -30,7 +30,7 @@ module Ordnung
       {
       	hash: { type: 'keyword' },
         size: { type: 'integer' },
-        time: { type: 'date', format: 'yyyy-MM-dd HH:mm:ss Z' } # 2023-11-08 16:03:40 +0100
+        time: { type: 'date', doc_value: true }
       }
     end
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -68,11 +68,11 @@ module Ordnung
                   `sha256sum -b #{pathname}`.split(' ')[0]
                 end
         @size = ::File.size(pathname)
-        @time = ::File.mtime(pathname).floor
+        @time = ::File.mtime(pathname).to_i
       when Hash
         @hash = name['hash']
         @size = name['size']
-        @time = Time.new(name['time'])
+        @time = name['time']
       else
         raise "Ordnung::Fleet.new #{name.class} unhandled"
       end

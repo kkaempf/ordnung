@@ -18,6 +18,16 @@ module Ordnung
       ::Ordnung.logger
     end
     #
+    # iterate over Gizmos
+    #
+    # options
+    #  :scroll (String) - scroll timeout, e.g. '2m' (for 2 minutes)
+    #  :size (Integer) - number of entries to return
+    #  :scroll_id (Object) - where to continue (lifetime, see scroll timeout)
+    #
+    def each options={}
+    end
+    #
     # Import anything (file or directory)
     #
     # path: filesystem path

@@ -56,11 +56,21 @@ module Ordnung
         :class =>     { type: 'keyword' },
         :name_id =>   { type: 'keyword' },
         :parent_id => { type: 'keyword' },
-        :added_at =>  { type: 'date', format: 'yyyy-MM-dd HH:mm:ss Z' } # 2023-11-08 16:03:40 +0100
+        :added_at =>  { type: 'date', doc_values: true }
       }
     end
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     public
+    #
+    # Gizmo by Hash
+    # @return gizmo
+    #
+    def self.by_hash hash
+      log.info "Gizmo.by_hash #{hash.inspect}"
+      klass = "::#{hash['class']}"
+      id = hash['_id']
+      (eval klass).new hash, id
+    end
     #
     # Gizmo by id
     # @return gizmo
@@ -70,19 +80,10 @@ module Ordnung
       hash = @@db.by_id(@@index, id)
 #      log.info "Gizmo.by_id #{id} -> #{hash.inspect}"
       if hash
-        log.info "Gizmo.by_id hash #{hash.inspect}"
-        klass = "::#{hash['class']}"
-        (eval klass).new hash, id
+        by_hash hash
       else
         nil
       end
-    end
-    #
-    #
-    # Convert instance variables to Hash
-    #
-    def to_hash
-      log.info "Gizmo.to_hash"
     end
     #
     # update or insert
@@ -94,7 +95,7 @@ module Ordnung
       log.info "Gizmo.upsert #{hash.inspect} -> #{@self_id}"
       return if @self_id
       # create new Gizmo
-      hash[:added_at] = @added_at = Time.now.floor
+      hash[:added_at] = @added_at = Time.now.to_i
       hash[:class] = self.class
       @self_id = @@db.create @@index, hash
     end
@@ -133,7 +134,7 @@ module Ordnung
           ppath = Gizmo.by_id(@parent_id).path
           ::File.join(ppath, n)
         rescue
-          Gizmo.log.info "*** Gizmo.path(#{@parent_id.inspect}:#{ppath.inspect} / #{n.inspect})"
+          log.info "*** Gizmo.path(#{@parent_id.inspect}:#{ppath.inspect} / #{n.inspect})"
           raise
         end
       else
@@ -161,6 +162,13 @@ module Ordnung
     def untag tag
       tag.untag @self_id
     end
+    #
+    # iterator
+    #
+    def each options={}
+      @@db.each @@index
+    end
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # id of name and parent gizmo
     # timestamp of creation
     attr_reader :self_id, :name_id, :parent_id, :added_at
@@ -179,7 +187,7 @@ module Ordnung
         @self_id = parent_id
         @parent_id = name['parent_id']
         @name_id = name['name_id']
-        @added_at = Time.new(name['added_at'])
+        @added_at = name['added_at']
       else
         raise "Can't create Gizmo from #{name.inspect}"
       end

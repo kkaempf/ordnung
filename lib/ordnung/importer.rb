@@ -115,10 +115,12 @@ module Ordnung
         log.info "\tparents #{parents.inspect}"
         parents.each do |parent,dirname|
           dir = Containers::Directory.new(parent, parent_id, dirname)
+          dir.upsert
           parent_id = dir.self_id
         end
       end
       directory = Containers::Directory.new(basename, parent_id, pathname)
+      directory.upsert
       return directory if depth <= 0
       ::Dir.foreach(pathname) do |node|
         case node
@@ -181,7 +183,9 @@ module Ordnung
         end
       end
       log.info "Importer.import as #{klass}.new(#{name.inspect}, #{parent_id}, #{pathname.inspect})"
-      klass.new(name, parent_id, pathname)
+      gizmo = klass.new(name, parent_id, pathname)
+      gizmo.upsert
+      gizmo
     end
     #
     # - - - - - - - - - - - - - - - - - - - - - - - -
