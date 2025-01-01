@@ -23,21 +23,19 @@ module Ordnung
       #
       # New GIF file
       #
-      def initialize name, parent_id
-        super name, parent_id
-        case name
+      def initialize props, parent_id=nil, pathname=nil
+        super
+        case props
         when String, Pathname
           Gizmo.log.info "Gif.new #{name.inspect}, #{parent_id}"
-          info = ::GifInfo.new self.path
-          @width = info.width
-          @height = info.height
-        when Hash
-          @width = name['width']
-          @height = name['height']
+          info = ::GifInfo.analyze_file pathname
+          @properties[:width] = info.width
+          @properties[:height] = info.height
+          upsert
         end
       end
       def to_s
-        super + "\n\t#{@width}x#{@height}"
+        super + "\n\t#{width}x#{height}"
       end
     end
   end
