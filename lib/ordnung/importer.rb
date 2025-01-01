@@ -201,17 +201,22 @@ module Ordnung
     #        1: just directory and its direct contents (subdirs only a depth 0)
     #       -1: recursive import
     #
-    def import path, depth=0, parent_id=nil
+    def import pathname, depth=0, parent_id=nil
       depth = depth.to_i rescue 0
-      log.info "Importer.import #{path.inspect}, #{depth.inspect}, #{parent_id.inspect}"
-      pathname = Pathname.new ::File.expand_path(path)
+      log.info "Importer.import #{pathname.inspect}, #{depth.inspect}, #{parent_id.inspect}"
+      unless pathname.is_a? Pathname
+        pathname = Pathname.new ::File.expand_path(pathname)
+      end
       if pathname.directory?
         import_directory pathname, depth, parent_id
       else
         parent, base = pathname.split
-        dir = import_directory parent, depth-1, parent_id
-        log.info "\timported #{parent.inspect} to #{dir.inspect}"
-        import_file base, dir.self_id, pathname
+        if parent_id.nil?
+          dir = import_directory parent, 0
+          log.info "\timported #{parent.inspect} to #{dir.inspect}"
+          parent_id = dir.self_id
+        end
+        import_file base, parent_id, pathname
       end
     end
     #
