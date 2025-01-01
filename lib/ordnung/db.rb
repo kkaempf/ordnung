@@ -132,13 +132,24 @@ module Ordnung
     #
     #
     def each index, options={}, &block
-      log.info "Db.each #{index.inspect} #{block_given?}"
+      log.info "Db.each #{index.inspect} #{options.inspect}"
       body = { sort: [ { added_at: { order: 'asc' } } ] }
+      unless options.empty?
+        query = {}
+        klass = options[:klass]
+        if klass
+          query = { bool: { filter: { match: { 'class' => "#{klass}" } } } }
+        end
+        unless query.empty?
+          body[:query] = query
+        end
+      end
       from = 0
       loop do
         begin
+          log.info "\tclient.search index #{index.inspect}, from #{from}, body #{body.inspect}"
           response = @client.search( index: index, from: from, size: 1, body: body )
-          log.info "client.search response #{response.inspect}"
+          log.info "\tclient.search response #{response.inspect}"
           hash = response.dig('hits', 'hits', 0, '_source')
           break if hash.nil?
           yield Gizmo.by_hash(hash)
