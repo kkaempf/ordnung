@@ -80,6 +80,7 @@ module Ordnung
     # detect extensionless gizmo
     #
     def detect pathname
+#      log.info "\tdetecting #{pathname}"
       exec = "file -b #{pathname.to_s.inspect}"
       file = `#{exec}`
       klass = nil
@@ -91,6 +92,7 @@ module Ordnung
       else
         klass = ::Ordnung::Blob
       end
+#      log.info "\t\tdetected #{klass.inspect}"
       klass
     end
     #
@@ -167,8 +169,9 @@ module Ordnung
       if elements[0].empty? # dot-file
         return nil # skip dot files
       end
-      if elements.size == 1 || # no extension
-        klass = detect pathname
+      klass = nil
+      if elements.size == 1 # no extension
+        klass = detect(pathname)
       else
         # find largest extension
         # for a.b.c.d
