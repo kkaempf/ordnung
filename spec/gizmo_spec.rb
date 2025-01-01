@@ -18,7 +18,13 @@ describe Ordnung::Tag do
         puts gizmo.path
         count += 1
       end
-      expect(count).to eq(3)
+      expect(count).to eq(2)
+      count = 0
+      @ordnung.each(klass: Ordnung::Text::Txt) do |gizmo|
+        puts gizmo.path
+        count += 1
+      end
+      expect(count).to eq(1)
     end
   end
 end

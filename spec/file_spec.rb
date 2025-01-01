@@ -18,7 +18,13 @@ describe Ordnung::Tag do
         puts file.path
         count += 1
       end
-      expect(count).to eq(3)
+      expect(count).to eq(2)
+      count = 0
+      Ordnung::File.each(klass: Ordnung::Text::Txt) do |file|
+        puts file.path
+        count += 1
+      end
+      expect(count).to eq(1)
     end
   end
 end
