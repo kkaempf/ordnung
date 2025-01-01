@@ -33,6 +33,13 @@ module Ordnung
         time: { type: 'date', doc_value: true }
       }
     end
+    #
+    # iterator
+    #
+    def self.each options={}, &block
+      log.info "File.each #{block_given?}"
+      @@db.each @@index, options, &block
+    end
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     public
     def log
