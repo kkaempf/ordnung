@@ -1,0 +1,13 @@
+#!/usr/bin/env ruby
+
+$:.push(File.join(File.expand_path("..", File.dirname(__FILE__)),"lib"))
+
+require "ordnung"
+
+ordnung = Ordnung::Ordnung.new
+
+puts "Listing everything"
+
+ordnung.each do |gizmo|
+  puts "#{gizmo.class}:#{gizmo.path}"
+end
