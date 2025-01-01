@@ -82,31 +82,32 @@ module Ordnung
     end
     #
     # get record from index by id
-    # @return hash
+    # @return Hash of properties
     #
-    def by_id index, id
+    def properties_by_id index, id
       result = @client.get(index: index, id: id)
       log.info "    Db.#{__callee__} #{index.inspect} - #{id.inspect}"
       return nil if result.nil?
       result['_source']
     end
     #
-    # get record from index by hash
+    # get id from index by properties
     # @return id
     #
-    def by_hash index, hash
-      return nil if hash.empty?
-      if hash.size == 1
-        query = { match: hash }
+    def id_by_properties index, properties
+      return nil if properties.empty?
+      if properties.size == 1
+        query = { match: properties }
       else
         filter = []
-        hash.each do |key,value|
+        properties.each do |key,value|
           next if value.nil?
+          next if key == '_id'
           filter << { match: { key => value } }
         end
         query = { bool: { filter: filter } }
       end
-      log.info "    Db.#{__callee__} #{index.inspect} - #{hash.inspect}: #{query.inspect}"
+      log.info "    Db.#{__callee__} #{index.inspect} - #{properties.inspect}: #{query.inspect}"
       result = @client.search(
         index: index,
         body: {
@@ -116,14 +117,14 @@ module Ordnung
       result.dig('hits', 'hits', 0, '_id')
     end
     #
-    # create record in index, store hash
+    # create record in index, store properties
     # @return id
     #
-    def create index, hash
-      log.info "    Db.#{__callee__}: #{index} #{hash.inspect}"
+    def create index, properties
+      log.info "    Db.#{__callee__}: #{index} #{properties.inspect}"
       result = @client.create(
         index: index,
-        body: hash
+        body: properties
       )
       @client.indices.refresh(index: index)
       result['_id']
@@ -133,7 +134,7 @@ module Ordnung
     #
     def each index, options={}, &block
       log.info "Db.each #{index.inspect} #{options.inspect}"
-      body = { sort: [ { added_at: { order: 'asc' } } ] }
+      body = { sort: [ { 'added_at' => { order: 'asc' } } ] }
       unless options.empty?
         query = {}
         klass = options[:klass]
@@ -150,9 +151,10 @@ module Ordnung
           log.info "\tclient.search index #{index.inspect}, from #{from}, body #{body.inspect}"
           response = @client.search( index: index, from: from, size: 1, body: body )
           log.info "\tclient.search response #{response.inspect}"
-          hash = response.dig('hits', 'hits', 0, '_source')
-          break if hash.nil?
-          yield Gizmo.by_hash(hash)
+          properties = response.dig('hits', 'hits', 0, '_source')
+          break if properties.nil?
+          properties[:id] = response.dig('hits', 'hits', 0, '_id')
+          yield Gizmo.by_properties(properties)
           from += 1
         rescue Exception => e
           log.warn "search failed with '#{e}'"

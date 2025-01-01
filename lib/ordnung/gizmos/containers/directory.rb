@@ -20,14 +20,6 @@ module Ordnung
       def self.properties
         nil
       end
-      #
-      # create new directory instance
-      #
-      def initialize name, parent_id, pathname=nil
-        log.info "#{self.class.inspect}.new #{name.inspect}, #{parent_id.inspect}, #{pathname.inspect}"
-        super name, parent_id, pathname || name
-        @hash = nil
-      end
     end
   end
 end

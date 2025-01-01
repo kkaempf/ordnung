@@ -62,14 +62,13 @@ module Ordnung
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     public
     #
-    # Gizmo by Hash
+    # Gizmo by Properties
     # @return gizmo
     #
-    def self.by_hash hash
-      log.info "Gizmo.by_hash #{hash.inspect}"
-      klass = "::#{hash['class']}"
-      id = hash['_id']
-      (eval klass).new hash, id
+    def self.by_properties properties
+      log.info "Gizmo.by_properties #{properties.inspect}"
+      klass = "::#{properties['class']}"
+      (eval klass).new properties
     end
     #
     # Gizmo by id
@@ -77,19 +76,20 @@ module Ordnung
     #
     def self.by_id id
       raise "No id given" if id.nil?
-      hash = @@db.by_id(@@index, id)
+      properties = @@db.properties_by_id(@@index, id)
 #      log.info "Gizmo.by_id #{id} -> #{hash.inspect}"
-      if hash
-        by_hash hash
-      else
-        nil
-      end
+      gizmo = if properties
+                self.by_properties properties
+              else
+                nil
+              end
+      gizmo.set_id(id) if gizmo
+      gizmo
     end
     #
     # iterator
     #
     def self.each options={}, &block
-      log.info "Gizmo.each #{block_given?}"
       @@db.each @@index, options, &block
     end
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -97,21 +97,23 @@ module Ordnung
     # update or insert
     # @return id
     #
-    def upsert hash={}
-      hash.merge!({ name_id: @name_id, parent_id: @parent_id, added_at: @added_at })
-      @self_id = @@db.by_hash @@index, hash
-      log.info "Gizmo.upsert #{hash.inspect} -> #{@self_id}"
+    def upsert
       return if @self_id
-      # create new Gizmo
-      hash[:added_at] = @added_at = Time.now.to_i
-      hash[:class] = self.class
-      @self_id = @@db.create @@index, hash
+      id = @@db.id_by_properties @@index, @properties
+      log.info "Gizmo.upsert #{@properties.inspect} -> #{id}"
+      unless id
+        # create new in database
+        @properties['added_at'] = @added_at = Time.now.to_i
+        @properties['class'] = "#{self.class}"
+        id = @@db.create @@index, @properties
+      end
+      @self_id = id
     end
     #
     # @return string representation of +Gizmo+
     #
     def to_s
-      "Gizmo(#{@name}:#{@self_id}->#{@parent_id})"
+      "#{self.class}(#{@self_id}:#{@properties.inspect})"
     end
     #
     # equality operator
@@ -119,33 +121,35 @@ module Ordnung
     def == other
       other &&
         self.class == other.class &&
-        @name_id == other.name_id &&
-        @parent_id == other.parent_id &&
-        @added_at == other.added_at
+        @self_id == other.self_id &&
+        @properties == other.properties
     end
     #
     # @return name of Gizmo as string
     #
     def name
-      raise "No name" if @name_id.nil?
-      Name.by_id(@name_id).name
+      log.info "#{self.class}.name #{@properties.inspect}"
+      n_id = self.name_id
+      raise "No name" if n_id.nil?
+      Name.by_id(n_id).name
     end
     #
     # File helper method
     # (re-)create full path  /dir <-parent- dir <-parent- ...
     #
     def path
-      if @parent_id
+      p_id = self.parent_id
+      if p_id
         begin
-          n = name
-          ppath = Gizmo.by_id(@parent_id).path
+          n = self.name
+          ppath = Gizmo.by_id(p_id).path
           ::File.join(ppath, n)
         rescue
-          log.info "*** Gizmo.path(#{@parent_id.inspect}:#{ppath.inspect} / #{n.inspect})"
+          log.info "*** Gizmo.path(#{@properties.inspect}:#{ppath.inspect} / #{n.inspect})"
           raise
         end
       else
-        "/#{name}"
+        "/#{self.name}"
       end
     end
     #
@@ -170,29 +174,32 @@ module Ordnung
       tag.untag @self_id
     end
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    # id of name and parent gizmo
-    # timestamp of creation
-    attr_reader :self_id, :name_id, :parent_id, :added_at
+    #
+    # properties access
+    #
+    def method_missing prop
+      @properties[prop] || @properties[prop.to_s]
+    end
+    def set_id id
+      @self_id = id
+    end
+    #
+    attr_reader :properties, :self_id
     #
     # Gizmo#new
     #
-    def initialize name, parent_id=nil
-      log.info "Gizmo.new(#{name.inspect},#{parent_id.inspect})"
-      case name
+    def initialize props, parent_id=nil
+      log.info "Gizmo.new(#{props.inspect},#{parent_id.inspect})"
+      case props
       when String, Pathname
-#        Gizmo.log.info "Gizmo.new(#{parent_id} / #{name.inspect})"
-        @name_id = Name.new(name).self_id
-        @parent_id = parent_id
+        Gizmo.log.info "Gizmo.new from String or Pathname"
+        @properties = { 'name_id' => Name.new(props).self_id, 'parent_id' => parent_id }
       when Hash
-#        Gizmo.log.info "Gizmo.new(#{name.inspect}) -> #{parent_id}"
-        @self_id = parent_id
-        @parent_id = name['parent_id']
-        @name_id = name['name_id']
-        @added_at = name['added_at']
+        Gizmo.log.info "Gizmo.new from Properties"
+        @properties = props
       else
-        raise "Can't create Gizmo from #{name.inspect}"
+        raise "Can't create Gizmo from #{props.inspect}"
       end
-#      Gizmo.log.info "\t ==> #{self}"
     end
   end
 end

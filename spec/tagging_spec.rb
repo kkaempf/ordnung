@@ -10,13 +10,6 @@ describe Ordnung::Tag do
     @tag_two = Ordnung::Tag.new("tag:two")
   end
 
-  after :all do
-    @ordnung.db.delete_index(Ordnung::Gizmo.index)
-    @ordnung.db.delete_index(Ordnung::Tagging.index)
-    @ordnung.db.delete_index(Ordnung::Tag.index)
-    @ordnung.db.delete_index(Ordnung::Name.index)
-  end
-
   context "tagging creation" do
     it "can create a simple tagging" do
       gizmo = @ordnung.import @file_one

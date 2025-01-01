@@ -51,10 +51,13 @@ module Ordnung
     #
     def self.by_id id
       return nil if id.nil?
-      begin
-        name = @@db.by_id(@@index, id)['name']
-        Name.new(name, id)
-      rescue
+      properties = @@db.properties_by_id(@@index, id)
+      name = properties['name']
+      if name
+        n = Name.new(name)
+        n.set_id id
+        n
+      else
         nil
       end
     end
@@ -64,11 +67,7 @@ module Ordnung
     #
     def self.id_by_name name
       return nil if name.nil?
-      begin
-        id = @@db.by_hash(@@index, self.to_hash(name))
-      rescue
-        nil
-      end
+      id = @@db.id_by_properties(@@index, self.to_hash(name))
     end
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     public
@@ -87,6 +86,12 @@ module Ordnung
       "Name(#{@name.inspect}@#{@self_id.inspect})"
     end
 
+    #
+    #
+    #
+    def set_id id
+      @self_id = id
+    end
     #
     # make id and name accessible
     #

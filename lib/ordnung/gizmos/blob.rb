@@ -23,22 +23,5 @@ module Ordnung
     def self.properties
       nil
     end
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    #
-    # check for equality
-    #
-    def == other
-#      log.info "Blob.== #{self.inspect} <-> #{other.inspect}"
-      other &&
-        self.class == other.class &&
-        super
-    end
-    #
-    # Create +Blob* instance
-    #
-    def initialize name, parent_id, pathname=nil
-      log.info "Blob.new(#{name.inspect}, #{parent_id.inspect}, #{pathname.inspect}"
-      super
-    end
   end
 end

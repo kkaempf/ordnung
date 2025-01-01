@@ -46,13 +46,16 @@ module Ordnung
     # @return
     #
     def upsert
-      log.info "Tagging.upsert(tag #{@tag_id.inspect} <-> gizmo #{@gizmo_id.inspect})"
-      hash = { tag_id: @tag_id, gizmo_id: @gizmo_id }
-      @self_id = @@db.by_hash index, hash
-#     log.info "Tagging.upsert #{hash.inspect} -> #{@id}"
-      return if @self_id
-      @self_id = @@db.create index, hash
+      log.info "Tagging.upsert(#{@self_id.inspect}:#{@properties.inspect})"
+      unless @self_id
+        id = @@db.id_by_properties @@index, @properties
+        unless id
+          id = @@db.create @@index, @properties
+        end
+        id
+      end
     end
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     public
     #
     # Database methods
@@ -60,57 +63,39 @@ module Ordnung
     def log
       ::Ordnung.logger
     end
-    #
-    # get index name associated with Tags
-    # @return +index+
-    #
-    def index
-      Tagging.index
+    def method_missing prop
+      @properties[prop.to_s]
     end
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    attr_reader :self_id, :tag_id, :gizmo_id
+    #
+    attr_reader :properties, :self_id
     #
     # Instance methods
     #
     def == other
       other &&
-        @tag_id == other.tag_id &&
-        @gizmo_id == other.gizmo_id
+        self.class == other.class &&
+        @self_id == other.self_id &&
+        @properties == other.properties
+    end
+    #
+    # return +Tag+
+    #
+    def tag
+      Tag.by_id self.tag_id
+    end
+    #
+    # @return +gizmo+
+    #
+    def gizmo
+      Gizmo.by_id self.gizmo_id
     end
     #
     # create new Tag object, linking +tag+ with +gizmo+
     #
     def initialize tag, gizmo
       log.info "Tagging.new(tag #{tag.inspect} <-> gizmo #{gizmo.inspect})"
-      @tag_id = tag.self_id
-      @gizmo_id = gizmo.self_id
-      upsert
-    end
-    #
-    # @return +id+ of Tag
-    #
-    def tag_id
-      @tag_id
-    end
-    #
-    # return +Tag+
-    #
-    def tag
-      log.info "Tagging.tag #{@tag_id.inspect}"
-      Tag.by_id @tag_id
-    end
-    #
-    # @return +id+ of gizmo
-    #
-    def gizmo_id
-      @gizmo_id
-    end
-    #
-    # @return +gizmo+
-    #
-    def gizmo
-      log.info "Tagging.gizmo #{@gizmo_id.inspect})"
-      Gizmo.by_id @gizmo_id
+      @properties = { 'tag_id' => tag.self_id, 'gizmo_id' => gizmo.self_id }
+      @self_id = upsert
     end
   end
 end

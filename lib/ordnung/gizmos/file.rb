@@ -9,14 +9,6 @@ module Ordnung
   #
   class File < Gizmo
     #
-    # fixme
-    #
-    def self.init
-      @@index = 'ordnung-files'
-      @@properties = self.properties.merge!(self.superclass.properties)
-      Ordnung::Db.create_index @@index
-    end
-    #
     # no associated extensions
     # @return nil
     #
@@ -46,60 +38,29 @@ module Ordnung
       ::Ordnung.logger
     end
     #
-    #
-    #
-    def upsert hash={}
-      super hash.merge!({ hash: @hash, size: @size, time: @time })
-    end
-    #
-    # +hash+ : checksum of File
-    # +size+ : number of bytes
-    # +time+ : timestamp from filesystem
-    #
-    attr_reader :hash, :size, :time, :properties
-    #
     # create instance of File or Directory
     #
     # Since Ordnung:File is a parent class of Ordnung::Container::Directory,
     # this initialization routine is called for plain files and directories.
     #
-    def initialize name, parent_id, pathname=nil
+    def initialize name, parent_id=nil, pathname=nil
       log.info "Ordnung::File.new #{name.inspect}, #{parent_id.inspect}, #{pathname.inspect}"
       super name, parent_id
       case name
       when Pathname, String
         raise "No pathname" if pathname.nil?
-        @hash = if pathname.directory?
-                  nil
-                else
-                  `sha256sum -b #{pathname}`.split(' ')[0]
-                end
-        @size = ::File.size(pathname)
-        @time = ::File.mtime(pathname).to_i
+        @properties['hash'] = if pathname.directory?
+                               nil
+                             else
+                               `sha256sum -b #{pathname}`.split(' ')[0]
+                             end
+        @properties['size'] = ::File.size(pathname)
+        @properties['time'] = ::File.mtime(pathname).to_i
       when Hash
-        @hash = name['hash']
-        @size = name['size']
-        @time = name['time']
+        @properties = name
       else
-        raise "Ordnung::Fleet.new #{name.class} unhandled"
+        raise "Ordnung::File.new #{name.class} unhandled"
       end
-    end
-    #
-    # check for equality
-    #
-    def == other
-      other &&
-        self.class == other.class &&
-        super &&
-        @hash == other.hash &&
-        @size == other.size &&
-        @time == other.time
-    end
-    #
-    # string representation for debugging/logging purposes
-    #
-    def to_s
-      "#{self.path} #{@size} #{@time} #{@hash}"
     end
   end
 end

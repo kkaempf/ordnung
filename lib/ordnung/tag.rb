@@ -61,13 +61,14 @@ module Ordnung
     def self.by_id id
       log.info "Tag.by_id(#{id.inspect})"
       return nil if id.nil?
-      begin
-        hash = @@db.by_id(Tag.index, id)
-        log.info "\tTag.by_id(hash #{hash.inspect})"
-        Tag.new(hash, id) if hash
-      rescue
-        nil
+      properties = @@db.properties_by_id(Tag.index, id)
+      log.info "\tTag.by_id(#{properties.inspect})"
+      tag = nil
+      if properties
+        tag = Tag.new(properties)
+        tag.set_id id
       end
+      tag
     end
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     #
@@ -84,6 +85,12 @@ module Ordnung
     def fullname
       log.info "Tag.fullname(#{@name.name.inspect}, #{@parent_id.inspect})"
       ((@parent_id)?"#{Tag.by_id(@parent_id).fullname}:":"") + @name.name
+    end
+    #
+    #
+    #
+    def set_id id
+      @self_id = id
     end
     # tag id
     # tag name
@@ -118,11 +125,11 @@ module Ordnung
         @parent_id = name['parent_id']
       end
       if @self_id.nil? # not from database
-        hash = { name_id: @name.self_id, parent_id: @parent_id }
-        @self_id = @@db.by_hash(Tag.index, hash)
+        properties = { 'name_id' => @name.self_id, 'parent_id' => @parent_id }
+        @self_id = @@db.id_by_properties(Tag.index, properties)
         if @self_id.nil? # does not exist
           # upsert !
-          @self_id = @@db.create(Tag.index, hash)
+          @self_id = @@db.create(Tag.index, properties)
         end
       end
     end
