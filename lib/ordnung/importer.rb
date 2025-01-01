@@ -147,6 +147,9 @@ module Ordnung
     #
     # import a +Pathname+ as +Gizmo+
     # called if pathname.directory? is false and the file's parent_id is known
+    # name: filename (after last slash)
+    # parent_id: Ordnung::Containers::Directory
+    # pathname: full pathname to access/read file
     #
     # @return +Gizmo+
     #
@@ -161,22 +164,23 @@ module Ordnung
       # find largest matching extension
       #
       elements = name.to_s.split('.')
+      if elements[0].empty? # dot-file
+        return nil # skip dot files
+      end
       if elements.size == 1 || # no extension
-        ((elements.size == 2) && elements[0].empty?) # dot-file
         klass = detect pathname
       else
         # find largest extension
         # for a.b.c.d
         #  try a - b.c.d, a.b - c.d, a.b.c - d
-        name = elements.shift
+        elements.shift # drop name, we look after the dot
         loop do
           break if elements.empty?
           extension = elements.join('.') # build extension from all remaining elements
           klass = @@extensions[extension]
           log.info "\textension >#{extension}< -> Class >#{klass.inspect}< ?"
           break if klass # found matching extension !
-          name << "."               # not found
-          name << elements.shift    #  move one more element to name
+          elements.shift # shorten remaining extension
         end
         if klass.nil?
           log.warn "Unimplemented #{name}(#{pathname})"
