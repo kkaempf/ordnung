@@ -8,26 +8,15 @@ describe Ordnung::Tag do
     @file_three = ::File.join(data_directory, 'three.bytes')
   end
 
-  after :all do
-    @ordnung.db.delete_index(Ordnung::Gizmo.index)
-    @ordnung.db.delete_index(Ordnung::Tagging.index)
-    @ordnung.db.delete_index(Ordnung::Tag.index)
-    @ordnung.db.delete_index(Ordnung::Name.index)
-  end
-
   context "Gizmo creation" do
-    Ordnung::logger.info "\n---- gizmo_spec ----\n"
     it "can create a simple Gizmo" do
       gizmo1 = @ordnung.import @file_one
       gizmo2 = @ordnung.import @file_two
       gizmo3 = @ordnung.import @file_three
       count = 0
-      @ordnung.each do |gizmo|
-        STDERR.flush
-        puts
+      @ordnung.each(klass: Ordnung::Blob) do |gizmo|
         puts gizmo.path
-        puts
-        STDOUT.flush
+        count += 1
       end
       expect(count).to eq(3)
     end
